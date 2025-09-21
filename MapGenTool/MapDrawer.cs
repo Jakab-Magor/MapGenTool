@@ -49,5 +49,37 @@ internal static class MapDrawer
         return fullPath;
     }
 
+    public static string DrawBitMap(
+        string path,
+        string fileName,
+        byte[,] grid,
+        [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1)
+    {
+        if (string.IsNullOrEmpty(path))
+            throw new ArgumentException($"'{nameof(path)}' cannot be null or empty.", nameof(path));
+
+        int scaledHeight = IntFloor(grid.GetLength(1) * scale);
+        int scaledWidth = IntFloor(grid.GetLength(0) * scale);
+        Bitmap bmp = new(scaledWidth, scaledHeight);
+
+        for (int y = 0; y < scaledHeight; y++)
+        {
+            for (int x = 0; x < scaledWidth; x++)
+            {
+                int scaledX = IntFloor(x / scale);
+                int scaledY = IntFloor(y / scale);
+
+                int tileValue = (int)grid[scaledX, scaledY];
+                Color color = Color.FromArgb(tileValue, tileValue, tileValue);
+
+                bmp.SetPixel(x, y, color);
+            }
+        }
+
+        string fullPath = Path.Combine(path, fileName) + s_extension;
+        bmp.Save(fullPath, s_outputFormat);
+        return fullPath;
+    }
+
     private static int IntFloor(float a) => (int)MathF.Floor(a);
 }

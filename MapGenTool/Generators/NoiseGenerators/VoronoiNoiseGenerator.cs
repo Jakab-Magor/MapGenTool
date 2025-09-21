@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using MapGenTool.Generic;
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
