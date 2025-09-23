@@ -11,17 +11,24 @@ internal static class MapDrawer
     private static readonly Dictionary<TileTypes, Color> s_tileColors = new Dictionary<TileTypes, Color>
     {
         {TileTypes.Space, Color.BlanchedAlmond},
-        {TileTypes.Wall, Color.Black }
+        {TileTypes.Wall, Color.Black },
+        {(TileTypes)2, Color.Blue },
+        {(TileTypes)3, Color.Green },
+        {(TileTypes)4, Color.Yellow },
+        {(TileTypes)5, Color.Red },
     };
+    private static readonly Color s_gridColor = Color.Gray;
 
     public static string DrawBitMap(
         string path,
-        string fileName,
         TileGrid grid,
-        [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1)
+        [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
+        int gridSize = 0)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentException($"'{nameof(path)}' cannot be null or empty.", nameof(path));
+
+        bool drawGrid = gridSize > 1;
 
         int scaledHeight = IntFloor(grid.Height * scale);
         int scaledWidth = IntFloor(grid.Width * scale);
@@ -37,6 +44,11 @@ internal static class MapDrawer
                 TileTypes tile = grid[scaledX, scaledY];
                 Color color = s_tileColors[tile];
 
+                if (drawGrid && (x % gridSize == gridSize - 1 || y%gridSize == gridSize - 1))
+                {
+                    color = s_gridColor;
+                }
+
                 //int tileValue = (int)grid[scaledX, scaledY];
                 //Color color = Color.FromArgb(tileValue, tileValue, tileValue);
 
@@ -44,14 +56,12 @@ internal static class MapDrawer
             }
         }
 
-        string fullPath = Path.Combine(path, fileName) + s_extension;
-        bmp.Save(fullPath, s_outputFormat);
-        return fullPath;
+        bmp.Save(path, s_outputFormat);
+        return path;
     }
 
     public static string DrawBitMap(
         string path,
-        string fileName,
         byte[,] grid,
         [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1)
     {
@@ -76,9 +86,8 @@ internal static class MapDrawer
             }
         }
 
-        string fullPath = Path.Combine(path, fileName) + s_extension;
-        bmp.Save(fullPath, s_outputFormat);
-        return fullPath;
+        bmp.Save(path, s_outputFormat);
+        return path;
     }
 
     private static int IntFloor(float a) => (int)MathF.Floor(a);

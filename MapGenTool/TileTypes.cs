@@ -3,5 +3,5 @@
 public enum TileTypes : byte
 {
     Wall,
-    Space
+    Space,
 }
