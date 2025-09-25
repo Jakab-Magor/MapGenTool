@@ -1,6 +1,6 @@
 ﻿namespace MapGenTool;
 
-public enum TileTypes : byte
+public enum Tiles : byte
 {
     Wall,
     Space,

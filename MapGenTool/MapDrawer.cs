@@ -8,20 +8,20 @@ internal static class MapDrawer
 {
     private static readonly ImageFormat s_outputFormat = ImageFormat.Png;
     private static readonly string s_extension = ".png";
-    private static readonly Dictionary<TileTypes, Color> s_tileColors = new Dictionary<TileTypes, Color>
+    private static readonly Dictionary<Tiles, Color> s_tileColors = new Dictionary<Tiles, Color>
     {
-        {TileTypes.Space, Color.BlanchedAlmond},
-        {TileTypes.Wall, Color.Black },
-        {(TileTypes)2, Color.Blue },
-        {(TileTypes)3, Color.Green },
-        {(TileTypes)4, Color.Yellow },
-        {(TileTypes)5, Color.Red },
+        {Tiles.Space, Color.BlanchedAlmond},
+        {Tiles.Wall, Color.Black },
+        {(Tiles)2, Color.Blue },
+        {(Tiles)3, Color.Green },
+        {(Tiles)4, Color.Yellow },
+        {(Tiles)5, Color.Red },
     };
     private static readonly Color s_gridColor = Color.Gray;
 
     public static string DrawBitMap(
         string path,
-        TileGrid grid,
+        Tiles[,] grid,
         [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
         int gridSize = 0)
     {
@@ -30,8 +30,8 @@ internal static class MapDrawer
 
         bool drawGrid = gridSize > 1;
 
-        int scaledHeight = IntFloor(grid.Height * scale);
-        int scaledWidth = IntFloor(grid.Width * scale);
+        int scaledHeight = IntFloor(grid.GetLength(1) * scale);
+        int scaledWidth = IntFloor(grid.GetLength(0) * scale);
         Bitmap bmp = new(scaledWidth, scaledHeight);
 
         for (int y = 0; y < scaledHeight; y++)
@@ -41,7 +41,7 @@ internal static class MapDrawer
                 int scaledX = IntFloor(x / scale);
                 int scaledY = IntFloor(y / scale);
 
-                TileTypes tile = grid[scaledX, scaledY];
+                Tiles tile = grid[scaledX, scaledY];
                 Color color = s_tileColors[tile];
 
                 if (drawGrid && (x % gridSize == gridSize - 1 || y%gridSize == gridSize - 1))

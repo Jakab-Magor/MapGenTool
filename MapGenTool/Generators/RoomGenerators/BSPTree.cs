@@ -1,16 +1,16 @@
 ﻿using MapGenTool.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace MapGenTool.Generators.RoomBasedGenerators;
+namespace MapGenTool.Generators.RoomGenerators;
 
 public class BSPTree(int partitionCount) : ILevelGenerator
 {
     [Range(0, int.MaxValue, MinimumIsExclusive = true)]
     public int HalfPartitionCount { get; set; } = partitionCount;
 
-    public TileTypes[,] Generate(int width, int height, int seed)
+    public Tiles[,] Generate(int width, int height, int seed)
     {
-        TileTypes[,] grid = new TileTypes[width, height];
+        Tiles[,] grid = new Tiles[width, height];
         Random rng = new(seed);
 
         Room canvas = new Room(new IntVector2(0, 0), new IntVector2(width, height));
@@ -32,17 +32,17 @@ public class BSPTree(int partitionCount) : ILevelGenerator
         return grid;
     }
 
-    private void DrawRoom(ref TileTypes[,] grid, Room room)
+    private void DrawRoom(ref Tiles[,] grid, Room room)
     {
         IntVector2 pos = room.Position;
         IntVector2 otherCorner = pos + room.Size;
 
         for (int y = pos.y; y < otherCorner.y; y++)
             for (int x = pos.x; x < otherCorner.x; x++)
-                grid[x, y] = TileTypes.Space;
+                grid[x, y] = Tiles.Space;
     }
 
-    private void DrawCorridors(ref TileTypes[,] grid, Room a, Room b)
+    private void DrawCorridors(ref Tiles[,] grid, Room a, Room b)
     {
         IntVector2 aCenter = a.Position + (a.Size / 2);
         IntVector2 bCenter = b.Position + (b.Size / 2);
@@ -55,24 +55,24 @@ public class BSPTree(int partitionCount) : ILevelGenerator
             int xMin = Math.Min(aCenter.x, bCenter.x);
             int xMax = Math.Max(aCenter.x, bCenter.x);
             for (int x = xMin; x <= xMax; x++)
-                grid[x, aCenter.y] = TileTypes.Space;
+                grid[x, aCenter.y] = Tiles.Space;
 
             int yMin = Math.Min(aCenter.y, bCenter.y);
             int yMax = Math.Max(aCenter.y, bCenter.y);
             for (int y = yMin; y <= yMax; y++)
-                grid[bCenter.x, y] = TileTypes.Space;
+                grid[bCenter.x, y] = Tiles.Space;
         }
         else // connect vertically first
         {
             int yMin = Math.Min(aCenter.y, bCenter.y);
             int yMax = Math.Max(aCenter.y, bCenter.y);
             for (int y = yMin; y <= yMax; y++)
-                grid[aCenter.x, y] = TileTypes.Space;
+                grid[aCenter.x, y] = Tiles.Space;
 
             int xMin = Math.Min(aCenter.x, bCenter.x);
             int xMax = Math.Max(aCenter.x, bCenter.x);
             for (int x = xMin; x <= xMax; x++)
-                grid[x, bCenter.y] = TileTypes.Space;
+                grid[x, bCenter.y] = Tiles.Space;
         }
     }
 

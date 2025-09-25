@@ -2,5 +2,5 @@
 
 public interface ILevelGenerator
 {
-    public TileTypes[,] Generate(int width, int height, int seed);
+    public Tiles[,] Generate(int width, int height, int seed);
 }

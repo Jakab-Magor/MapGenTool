@@ -16,15 +16,15 @@ public class SimpleNoise : ILevelGenerator
     }
 
 
-    public TileTypes[,] Generate(int width, int height, int seed)
+    public Tiles[,] Generate(int width, int height, int seed)
     {
-        TileTypes[,] tiles = new TileTypes[width, height];
+        Tiles[,] tiles = new Tiles[width, height];
         Random rng = new(seed);
 
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
-                TileTypes value = (TileTypes)rng.Next(_maxTile);
+                Tiles value = (Tiles)rng.Next(_maxTile);
                 tiles[x, y] = value;
             }
 

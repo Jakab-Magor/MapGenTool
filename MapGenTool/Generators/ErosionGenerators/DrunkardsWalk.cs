@@ -1,0 +1,116 @@
+﻿using MapGenTool.Generic;
+
+namespace MapGenTool.Generators.ErosionGenerators;
+
+public class DrunkardsWalk : ILevelGenerator
+{
+    public Func<int, int, int, Tiles[,]>? _generator = null;
+    public int AgentsCount { get; set; }
+    public int Iterations { get; set; }
+    public int StepLength { get; set; }
+
+    public DrunkardsWalk(int agents, int iterations, int stepLength = 1) : this(null!, agents, iterations, stepLength) { }
+
+    public DrunkardsWalk(Func<int, int, int, Tiles[,]> generator, int agentsPerSpace, int iterations, int stepLength = 1)
+    {
+        _generator = generator;
+        AgentsCount = agentsPerSpace;
+        Iterations = iterations;
+        StepLength = stepLength;
+    }
+
+    public Tiles[,] Generate(int width, int height, int seed)
+    {
+        Tiles[,] grid;
+        IntVector2[] agents;
+        if (_generator is null)
+        {
+            grid = new Tiles[width, height];
+            IntVector2 center = new IntVector2(width, height) / 2;
+            grid[center.x, center.y] = Tiles.Space;
+            agents = new IntVector2[AgentsCount];
+            for (int i = 0; i < agents.Length; i++)
+                agents[i] = center;
+
+        }
+        else
+        {
+            grid = _generator.Invoke(width, height, seed);
+            List<IntVector2> tmpAgents = [];
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (grid[x,y]==Tiles.Wall)
+                    {
+                        var chord = new IntVector2(x, y);
+                        for (int i = 0; i < AgentsCount; i++)
+                        {
+                            tmpAgents.Add(chord);
+                        }
+                    }
+                }
+            }
+            agents = [.. tmpAgents];
+        }
+        foreach (var agent in agents)
+            DrawAgent(ref grid, agent);
+        Random rng = new(seed);
+
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                if (grid[x, y] == Tiles.Space)
+                    throw new NotImplementedException("JA!");
+
+            }
+        }
+
+        for (int i = 0; i < agents.Length; i++)
+        {
+            DrawAgent(ref grid, agents[i]);
+        }
+
+        for (int i = 0; i < Iterations; i++)
+            for (int j = 0; j < agents.Length; j++)
+                StepAgent(ref grid, ref rng, ref agents[j], width, height);
+
+        return grid;
+    }
+
+    private void StepAgent(ref Tiles[,] grid, ref Random rng, ref IntVector2 agent, int width, int height)
+    {
+        bool ishorizontalStep = rng.Next(0, 2) == 1;
+        if (ishorizontalStep)
+        {
+            int nextX = agent.x + rng.Next(-StepLength, StepLength + 1);
+            nextX = Math.Clamp(nextX, -1, width);
+            int startX = agent.x;
+            int sign = (startX < nextX) ? 1 : -1;
+            for (int x = startX; x != nextX; x += sign)
+            {
+                agent.x = x;
+                DrawAgent(ref grid, agent);
+            }
+        }
+        else
+        {
+            int nextY = agent.y + rng.Next(-StepLength, StepLength + 1);
+            nextY = Math.Clamp(nextY, -1, height);
+            int startY = agent.y;
+            int sign = (startY < nextY) ? 1 : -1;
+            for (int y = startY; y != nextY; y += sign)
+            {
+                agent.y = y;
+                DrawAgent(ref grid, agent);
+            }
+        }
+    }
+
+    private void DrawAgent(ref Tiles[,] grid, IntVector2 agent)
+    {
+        grid[agent.x, agent.y] = Tiles.Space;
+    }
+}
