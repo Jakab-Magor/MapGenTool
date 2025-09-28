@@ -19,7 +19,7 @@ internal static class MapDrawer
     };
     private static readonly Color s_gridColor = Color.Gray;
 
-    public static string DrawBitMap(
+    public static void DrawBitMap(
         string path,
         Tiles[,] grid,
         [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
@@ -57,16 +57,18 @@ internal static class MapDrawer
         }
 
         bmp.Save(path, s_outputFormat);
-        return path;
     }
 
-    public static string DrawBitMap(
+    public static void DrawBitMap(
         string path,
         byte[,] grid,
-        [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1)
+        [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
+        int gridSize = 0)
     {
         if (string.IsNullOrEmpty(path))
             throw new ArgumentException($"'{nameof(path)}' cannot be null or empty.", nameof(path));
+
+        bool drawGrid = gridSize > 1;
 
         int scaledHeight = IntFloor(grid.GetLength(1) * scale);
         int scaledWidth = IntFloor(grid.GetLength(0) * scale);
@@ -82,12 +84,16 @@ internal static class MapDrawer
                 int tileValue = (int)grid[scaledX, scaledY];
                 Color color = Color.FromArgb(tileValue, tileValue, tileValue);
 
+                if (drawGrid && (x % gridSize == gridSize - 1 || y % gridSize == gridSize - 1))
+                {
+                    color = s_gridColor;
+                }
+
                 bmp.SetPixel(x, y, color);
             }
         }
 
         bmp.Save(path, s_outputFormat);
-        return path;
     }
 
     private static int IntFloor(float a) => (int)MathF.Floor(a);
