@@ -24,3 +24,32 @@ var test = conway.Generate(width,height,seed);
 string path = MapDrawer.DrawBitMap("./test1.png", test, scale, (int)scale);
 Console.WriteLine($"Succesfully created map at {path}");
 //Process.Start("explorer.exe", path);
+
+/// -----------------------------------
+/// TODO:
+/// -----------------------------------
+/// - Own Erosion algorythm
+/// - Fix drunkards walk to be drunkards walk
+/// - Drunkard's with base texture
+/// - Diffusion limited aggregation
+/// - Perlin noise
+/// - Simplex noise
+/// - Dijkstra map
+/// - Simple room placer
+/// - Fused room placer
+/// - Prefab based generator
+/// - Wave function collapse
+/// - Map Drawer file handling
+///     - Name files so no overrides
+///     - Open image editor when finished
+/// - args
+/// 
+/// -----------------------------------
+/// Questions to Orosz:
+/// -----------------------------------
+/// - Documentation generraly
+/// - Documentation in comments
+/// - Code readability
+/// - Optimization
+///     - Multithreading and GPU
+/// - Making GUI tester for testing

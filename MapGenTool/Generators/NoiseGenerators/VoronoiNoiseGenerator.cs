@@ -41,7 +41,7 @@ public class VoronoiNoiseGenerator(int tilesPerChunk) : IGrayscaleGenerator
                     chunkX++;
                 }
 
-                float minDist = float.MaxValue;
+                float minDist2 = float.MaxValue;
                 for (int i = -1; i <= 1; i++)
                 {
                     for (int j = -1; j <= 1; j++)
@@ -59,14 +59,14 @@ public class VoronoiNoiseGenerator(int tilesPerChunk) : IGrayscaleGenerator
                         IntVector2 tilePosInChunk = new(xInChunk, yInChunk);
 
                         IntVector2 differenceVector = (tilePosInChunk - seedPos);
-                        float distance = differenceVector.Magnitude;
+                        float distance2 = differenceVector.Magnitude2;
 
-                        if (distance < minDist)
-                            minDist = distance;
+                        if (distance2 < minDist2)
+                            minDist2 = distance2;
                     }
                 }
 
-                float normalisedDistance = minDist / new IntVector2(TilesPerChunk, TilesPerChunk).Magnitude;
+                float normalisedDistance = minDist2 / new IntVector2(TilesPerChunk, TilesPerChunk).Magnitude2;
 
                 tiles[x, y] = (byte)(normalisedDistance * 255);
             }

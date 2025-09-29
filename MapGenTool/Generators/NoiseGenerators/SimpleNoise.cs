@@ -2,29 +2,22 @@
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
-public class SimpleNoise : ILevelGenerator
+public class SimpleNoise : IGrayscaleGenerator
 {
-    private readonly int _maxTile = 2;
-
     public SimpleNoise()
     {
     }
 
-    public SimpleNoise(int maxTile)
-    {
-        _maxTile = maxTile;
-    }
 
-
-    public Tiles[,] Generate(int width, int height, int seed)
+    public byte[,] Generate(int width, int height, int seed)
     {
-        Tiles[,] tiles = new Tiles[width, height];
+        byte[,] tiles = new byte[width, height];
         Random rng = new(seed);
 
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
-                Tiles value = (Tiles)rng.Next(_maxTile);
+                byte value = (byte)rng.Next(0,256);
                 tiles[x, y] = value;
             }
 
