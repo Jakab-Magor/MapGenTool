@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MapGenTool": {
+      "commandName": "Project",
+      "commandLineArgs": "-w 120\r\n--height 30\r\n-S 36\r\n-s 32\r\n./test.png"
+    }
+  }
+}

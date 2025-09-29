@@ -19,7 +19,7 @@ internal static class MapDrawer
     };
     private static readonly Color s_gridColor = Color.Gray;
 
-    public static string DrawBitMap(
+    public static void DrawBitMap(
         string path,
         Tiles[,] grid,
         [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
@@ -57,10 +57,9 @@ internal static class MapDrawer
         }
 
         bmp.Save(path, s_outputFormat);
-        return path;
     }
 
-    public static string DrawBitMap(
+    public static void DrawBitMap(
         string path,
         byte[,] grid,
         [Range(minimum: 1, maximum: float.MaxValue, MinimumIsExclusive = false)] float scale = 1,
@@ -95,7 +94,6 @@ internal static class MapDrawer
         }
 
         bmp.Save(path, s_outputFormat);
-        return path;
     }
 
     private static int IntFloor(float a) => (int)MathF.Floor(a);
