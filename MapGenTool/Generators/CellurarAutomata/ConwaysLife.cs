@@ -1,13 +1,12 @@
 ﻿namespace MapGenTool.Generators.CellurarAutomata;
 
-public class ConwaysLife(Func<int, int, int, Tiles[,]> generator, int iterations) : ILevelGenerator
+public class ConwaysLife(int iterations) : IGenerator<Tiles,Tiles>
 {
-    private Func<int, int, int, Tiles[,]> _generator = generator;
     public int Iterations { get; set; } = iterations;
 
-    public Tiles[,] Generate(int width, int height, int seed)
+    public Tiles[,] Generate(Tiles[,] baseGrid,int width, int height, int seed)
     {
-        Tiles[,] prevGrid = _generator.Invoke(width, height, seed);
+        Tiles[,] prevGrid = baseGrid;
         Tiles[,] nextGrid = new Tiles[width, height];
 
         for (int i = 0; i < Iterations; i++)

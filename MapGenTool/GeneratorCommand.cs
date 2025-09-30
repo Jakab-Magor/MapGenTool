@@ -1,32 +1,38 @@
-﻿using System.CommandLine;
+﻿using MapGenTool.Generators;
+using System.Reflection;
 
 namespace MapGenTool;
 
-internal interface IGeneratorCommand
+internal class GeneratorCommand<T>(string name) where T : IGenerator
 {
-    public Command Command { get; set; }
-    public bool IsInputSupported(Type type);
-}
-internal class GeneratorCommand<TOut>(Command command) :IGeneratorCommand
-{
-    public Command Command { get; set; } = command;
-
-    public bool IsInputSupported(Type type) => false;
-}
-internal class GeneratorCommand<TIn,TOut>(Command command) : IGeneratorCommand
-{
-    public Command Command { get; set; } = command;
-
-    public bool IsInputSupported(Type type) => type == typeof(TIn);
-}
-internal class GeneratorCommand<TIn1,TIn2, TOut>(Command command) : IGeneratorCommand
-{
-    public Command Command { get; set; } = command;
-
-    public bool IsInputSupported(Type type)
+    public string Name { get; init; } = name;
+    private ConstructorInfo Constructor
     {
-        return
-            type == typeof(TIn1) ||
-            type == typeof(TIn2);
+        get
+        {
+            field ??= typeof(T).GetConstructors().Single();
+            return field;
+        }
+    } = null!;
+    public ParameterInfo[] Parameters
+    {
+        get
+        {
+            field ??= Constructor.GetParameters();
+            return field;
+        }
+    } = null!;
+
+    public int GetArgsCounts() => Parameters.Length;
+
+    public bool IsInputSupported<TIn>()
+    {
+        if (typeof(T) is IGenerator<TType>)
+            return false;
+
+        if (typeof(T) is IGenerator<TIn, TType>)
+            return true;
+
+        return false;
     }
 }

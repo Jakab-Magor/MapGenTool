@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MapGenTool.Generators.RoomGenerators;
 
-public class BSPTree(int partitionCount) : ILevelGenerator
+public class BSPTree(int partitionCount) : IGenerator<Tiles>
 {
     [Range(0, int.MaxValue, MinimumIsExclusive = true)]
     public int HalfPartitionCount { get; set; } = partitionCount;

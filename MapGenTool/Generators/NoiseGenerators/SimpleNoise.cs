@@ -2,7 +2,7 @@
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
-public class SimpleNoise : IGrayscaleGenerator
+public class SimpleNoise : IGenerator<byte>
 {
     public SimpleNoise()
     {

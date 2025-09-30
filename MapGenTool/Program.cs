@@ -33,6 +33,10 @@ Argument<FileInfo> pathArgument = new("path")
 {
     Description = "Output path for the image"
 };
+Argument<string[]> pipelineArgument = new("generator-pipeline")
+{
+    Description = "Pipeline for the generators. Syntax: <generator-name> [value]"
+};
 
 RootCommand rootCommand = new("MapGenTool");
 rootCommand.Options.Add(widthOption);
@@ -40,62 +44,17 @@ rootCommand.Options.Add(heightOption);
 rootCommand.Options.Add(scaleOption);
 rootCommand.Options.Add(seedOption);
 rootCommand.Arguments.Add(pathArgument);
+rootCommand.Arguments.Add(pipelineArgument);
 
-var voronoi = new GeneratorCommand<byte>(new("voronoi", "Generates a voronoi noise texture. (byte[*.*])"));
-voronoi.Command.Options.Add(
-    new Option<int>("--grid-scale", "-G")
-    {
-        Description = "The scale of the grid in which the seeds are placed."
-    });
-var sobel = new GeneratorCommand<byte, byte>(new("sobel", "Takes input and runs Sobel edge detection on it. (byte[*.*])"));
-var bsp = new GeneratorCommand<Tiles>(new("bsp", "Generates room and corridors in subdivided edges. (Tiles[*.*])"));
-bsp.Command.Options.Add(
-    new Option<int>("--particion-count, -P")
-    {
-        Description = "How many partitions the image should be split into. The number of room equals 2 to the power of n.",
-        Required = true
-    });
-var clamper = new GeneratorCommand<byte, Tiles>(new("clamper", "Clamps given byte[*,*] into Tiles[*,*] walls and spaces. (Tiles[*.*])"));
-clamper.Command.Options.Add(
-    new Option<float>("--threshold", "-T")
-    {
-        Description = "The threshold at which to place spases insted of walls",
-        Required=true,
-        DefaultValueFactory = parseResult => 0.5f
-    });
-var conway = new GeneratorCommand<Tiles, Tiles>(new("conway", "Runs Conway's game of life on give Tiles[*,*] where spaces are alive cells. (Tiles[*.*])"));
-conway.Command.Options.Add(
-    new Option<int>("--iterations", "-I")
-    {
-        Description = "The number of iterations the simulation should run for before output.",
-        Required = true,
-    });
-//var drunkardsWalk = new GeneratorCommand<Tiles, Tiles>(new("drunkards", "Runs drunkards walk algorythm on given image. Drunkard can start on any space cells. (Tiles[*.*])"));
-var simpleNoise = new GeneratorCommand<Tiles>(new("simple-nosie", "Gets a simple randomized noise. (Tiles[*.*])"));
-
-IGeneratorCommand[] generatorCommands = [
-    voronoi,
-    sobel,
-    bsp,
-    clamper,
-    conway,
-    //drunkardsWalk,
-    simpleNoise
-];
-foreach (var generatorCommand in generatorCommands)
-{
-    rootCommand.Subcommands.Add(generatorCommand.Command);
-
-    var supportedCommands = generatorCommands
-        .Where(
-            c => c.IsInputSupported(
-                generatorCommand.GetType().GenericTypeArguments.Last()));
-    foreach (var c in supportedCommands)
-    {
-        generatorCommand.Command.Subcommands.Add(c);
-    }
-}
-
+GeneratorCommand<IGenerator>[] generators = [
+    new GeneratorCommand<VoronoiNoiseGenerator>("voronoi"),
+    new GeneratorCommand<SobelEdgeDetection>("sobel"),
+    new GeneratorCommand<BSPTree>("bsp"),
+    new GeneratorCommand<ThresholdClamper>("treshold-clamper"),
+    new GeneratorCommand<ConwaysLife>("conways"),
+    new GeneratorCommand<DrunkardsWalk>("drunkards-walk"),
+    new GeneratorCommand<SimpleNoise>("simple-noise"),
+    ];
 
 ParseResult results = rootCommand.Parse(args);
 
@@ -114,17 +73,12 @@ float scale = results.GetValue(scaleOption);
 
 int seed = results.GetValue(seedOption);
 string path = Path.GetFullPath(fileInfo.FullName);
-
-List<>
-foreach (var generatorCommand in generatorCommands)
-{
-
-}
+string[] pipelineArgs = results.GetValue(pipelineArgument) ?? [];
 
 Console.WriteLine("Starting generation...");
 //var test = clamper.Generate(width, height, seed);
 
-MapDrawer.DrawBitMap(path, test, scale, (int)scale);
+//MapDrawer.DrawBitMap(path, test, scale, (int)scale);
 Console.WriteLine($"Successfully created map at {path}");
 
 if (File.Exists(path))
@@ -166,3 +120,4 @@ return 0;
 /// - Optimization
 ///     - Multithreading and GPU
 /// - Making GUI tester for testing
+/// - Benchmarking included for algorythms

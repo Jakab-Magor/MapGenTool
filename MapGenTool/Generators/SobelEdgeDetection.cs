@@ -1,8 +1,7 @@
 ﻿namespace MapGenTool.Generators;
 
-public class SobelEdgeDetection(Func<int, int, int, byte[,]> generator) : IGrayscaleGenerator
+public class SobelEdgeDetection : IGenerator<byte,byte>
 {
-    private readonly Func<int, int, int, byte[,]> _generator = generator;
 
     private static readonly int[,] s_gx = new int[3, 3]
     {
@@ -17,10 +16,8 @@ public class SobelEdgeDetection(Func<int, int, int, byte[,]> generator) : IGrays
         {1,2,1 }
     };
 
-    public byte[,] Generate(int width, int height, int seed)
+    public byte[,] Generate(byte[,] baseGrid,int width, int height, int seed)
     {
-        byte[,] baseGrid = _generator.Invoke(width, height, seed);
-
         byte[,] resultGrid = new byte[width, height];
 
         for (int y = 0; y < height; y++)

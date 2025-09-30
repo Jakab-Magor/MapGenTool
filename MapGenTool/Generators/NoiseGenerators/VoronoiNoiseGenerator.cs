@@ -4,7 +4,7 @@ using MapGenTool.Generic;
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
-public class VoronoiNoiseGenerator(int tilesPerChunk) : IGrayscaleGenerator
+public class VoronoiNoiseGenerator(int tilesPerChunk) : IGenerator<byte>
 {
     [Range(minimum: 1, maximum: int.MaxValue, MinimumIsExclusive = true)]
     public int TilesPerChunk { get; set; } = tilesPerChunk;

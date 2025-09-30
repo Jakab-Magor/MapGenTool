@@ -2,15 +2,13 @@
 
 namespace MapGenTool.Generators;
 
-class ThresholdClamper(Func<int, int, int, byte[,]> generator, float threshold) : ILevelGenerator
+class ThresholdClamper(float threshold) : IGenerator<byte,Tiles>
 {
-    private readonly Func<int, int, int, byte[,]> _generator = generator;
     [Range(0, 1, MinimumIsExclusive = false, MaximumIsExclusive = false)]
     public float Threshold { get; set; } = threshold;
 
-    public Tiles[,] Generate(int width, int height, int seed)
+    public Tiles[,] Generate(Tiles[,] baseGrid,int width, int height, int seed)
     {
-        byte[,] baseGrid = _generator.Invoke(width, height, seed);
         Tiles[,] result = new Tiles[width, height];
 
         byte scaledThreshold = (byte)(Threshold * byte.MaxValue);
