@@ -10,20 +10,25 @@ int width = 120;
 int height = 30;
 float scale = MathF.Min(1980 / width, 1080 / height);
 int seed = 0x_0020;
+string path = "./test1.png";
 
 VoronoiNoiseGenerator voronoi = new(10);
-SobelEdgeDetection sobel = new (voronoi.Generate);
+SobelEdgeDetection sobel = new(voronoi.Generate);
 ThresholdClamper clamper = new(sobel.Generate, 0.4f);
-BSPTree bsp = new(partitionCount:8);
-DrunkardsWalk drunkardsWalk = new(agents: 5, iterations: 10, stepLength: 7);
+BSPTree bsp = new(partitionCount: 8);
+DrunkardsWalk drunkardsWalk = new(bsp.Generate, agents: 200, iterations: 10, stepLength: 2);
 ConwaysLife conway = new(bsp.Generate, 1);
 
-//ILevelGenerator generator = new ThresholdClamper(sobel.Generate,0.0505f);
 Console.WriteLine("Starting generation.");
 
-var test = clamper.Generate(width,height,seed);
+var test = drunkardsWalk.Generate(width, height, seed);
 
-string path = Path.GetFullPath("./test1.png");
-MapDrawer.DrawBitMap(path, test, scale, (int)scale);
-Console.WriteLine($"Succesfully created map at {path}");
-Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+string fullPath = Path.GetFullPath(path);
+MapDrawer.DrawBitMap(fullPath, test, scale, (int)scale);
+Console.WriteLine($"Succesfully created map at {fullPath}");
+if (File.Exists(fullPath))
+    Process.Start(new ProcessStartInfo(fullPath) { UseShellExecute = true });
+else
+    return 1;
+
+return 0;
