@@ -4,10 +4,17 @@ using MapGenTool.Generic;
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
-public class VoronoiNoiseGenerator(int tilesPerChunk) : IGenerator<byte>
+public class VoronoiNoiseGenerator() : IGenerator<byte>
 {
+
     [Range(minimum: 1, maximum: int.MaxValue, MinimumIsExclusive = true)]
-    public int TilesPerChunk { get; set; } = tilesPerChunk;
+    public int TilesPerChunk { get; set; }
+    public bool UsesInput => false;
+    public bool[,] BaseGrid { set => throw new NotImplementedException(); }
+
+    public byte ArgsCount => 1;
+
+    public Type InputType => throw new NotImplementedException();
 
     public byte[,] Generate(int width, int height, int seed)
     {
@@ -75,4 +82,13 @@ public class VoronoiNoiseGenerator(int tilesPerChunk) : IGenerator<byte>
         return tiles;
     }
 
+    public void Parse(params string[] args)
+    {
+        TilesPerChunk = int.Parse(args[0]);
+    }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible
+    {
+        throw new NotImplementedException();
+    }
 }

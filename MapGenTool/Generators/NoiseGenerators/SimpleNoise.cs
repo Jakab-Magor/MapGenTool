@@ -2,12 +2,13 @@
 
 namespace MapGenTool.Generators.NoiseGenerators;
 
-public class SimpleNoise : IGenerator<byte>
+public class SimpleNoise() : IGenerator<byte>
 {
-    public SimpleNoise()
-    {
-    }
+    public bool UsesInput => false;
 
+    public byte ArgsCount => 0;
+
+    public Type InputType => throw new NotImplementedException();
 
     public byte[,] Generate(int width, int height, int seed)
     {
@@ -22,5 +23,12 @@ public class SimpleNoise : IGenerator<byte>
             }
 
         return tiles;
+    }
+
+    public void Parse(params string[] args) { }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible
+    {
+        throw new NotImplementedException();
     }
 }

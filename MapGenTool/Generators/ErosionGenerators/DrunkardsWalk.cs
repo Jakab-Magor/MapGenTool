@@ -2,12 +2,21 @@
 
 namespace MapGenTool.Generators.ErosionGenerators;
 
-public class DrunkardsWalk(int agentsPerSpace, int iterations, int stepLength = 1) : IGenerator<Tiles,Tiles>
+public class DrunkardsWalk() : IGenerator<Tiles>
 {
-    public int Iterations { get; set; } = iterations;
-    public int StepLength { get; set; } = stepLength;
+    public int Agents { get; set; }
+    public int Iterations { get; set; }
+    public int StepLength { get; set; }
 
-    public Tiles[,] Generate(Tiles[,] baseGrid, int width, int height, int seed)
+    public bool UsesInput => true;
+
+    private Tiles[,] _baseGrid = null!;
+
+    public byte ArgsCount => 3;
+
+    public Type InputType => typeof(Tiles);
+
+    public Tiles[,] Generate(int width, int height, int seed)
     {/*
         IntVector2[] agents;
         if (_generator is null)
@@ -64,7 +73,7 @@ public class DrunkardsWalk(int agentsPerSpace, int iterations, int stepLength = 
             for (int j = 0; j < agents.Length; j++)
                 StepAgent(ref baseGrid, ref rng, ref agents[j], width, height);*/
 
-        return baseGrid;
+        return _baseGrid;
     }
 
     private void StepAgent(ref Tiles[,] grid, ref Random rng, ref IntVector2 agent, int width, int height)
@@ -99,5 +108,17 @@ public class DrunkardsWalk(int agentsPerSpace, int iterations, int stepLength = 
     private void DrawAgent(ref Tiles[,] grid, IntVector2 agent)
     {
         grid[agent.x, agent.y] = Tiles.Space;
+    }
+
+    public void Parse(params string[] args)
+    {
+        Agents = int.Parse(args[0]);
+        Iterations = int.Parse(args[1]);
+        StepLength = int.Parse(args[2]);
+    }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible
+    {
+        _baseGrid = IGenerator<Tiles>.CastGrid<T>(basegrid);
     }
 }

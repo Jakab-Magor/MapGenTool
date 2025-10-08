@@ -3,10 +3,16 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MapGenTool.Generators.RoomGenerators;
 
-public class BSPTree(int partitionCount) : IGenerator<Tiles>
+public class BSPTree() : IGenerator<Tiles>
 {
     [Range(0, int.MaxValue, MinimumIsExclusive = true)]
-    public int HalfPartitionCount { get; set; } = partitionCount;
+    public int HalfPartitionCount { get; set; }
+
+    public bool UsesInput => false;
+
+    public byte ArgsCount => 1;
+
+    public Type InputType => throw new NotImplementedException();
 
     public Tiles[,] Generate(int width, int height, int seed)
     {
@@ -91,5 +97,15 @@ public class BSPTree(int partitionCount) : IGenerator<Tiles>
 
         Room r = new(pos, size);
         return r;
+    }
+
+    public void Parse(params string[] args)
+    {
+        HalfPartitionCount = int.Parse(args[0]);
+    }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible
+    {
+        throw new NotImplementedException();
     }
 }

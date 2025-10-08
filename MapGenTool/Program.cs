@@ -7,6 +7,9 @@ using MapGenTool.Generators.NoiseGenerators;
 using MapGenTool.Generators.RoomGenerators;
 using System.Diagnostics;
 
+/// ----------------------------------------------
+/// CLI tooling
+/// ----------------------------------------------
 Option<int> widthOption = new("--width", "-w")
 {
     Description = "Width of the map",
@@ -46,16 +49,22 @@ rootCommand.Options.Add(seedOption);
 rootCommand.Arguments.Add(pathArgument);
 rootCommand.Arguments.Add(pipelineArgument);
 
-GeneratorCommand<IGenerator>[] generators = [
-    new GeneratorCommand<VoronoiNoiseGenerator>("voronoi"),
-    new GeneratorCommand<SobelEdgeDetection>("sobel"),
-    new GeneratorCommand<BSPTree>("bsp"),
-    new GeneratorCommand<ThresholdClamper>("treshold-clamper"),
-    new GeneratorCommand<ConwaysLife>("conways"),
-    new GeneratorCommand<DrunkardsWalk>("drunkards-walk"),
-    new GeneratorCommand<SimpleNoise>("simple-noise"),
-    ];
+/// ----------------------------------------------
+/// Generator instantiation for pipeline parsing
+/// ----------------------------------------------
+Dictionary<string, IGenerator> generators = new(){
+    { "voronoi", new VoronoiNoiseGenerator()},
+    { "sobel", new SobelEdgeDetection()},
+    { "bsp", new BSPTree()},
+    { "treshold-clamper", new ThresholdClamper()},
+    { "conways", new ConwaysLife()},
+    { "drunkards-walk", new DrunkardsWalk()},
+    { "simple-noise", new SimpleNoise()},
+};
 
+/// ----------------------------------------------
+/// Parsing
+/// ----------------------------------------------
 ParseResult results = rootCommand.Parse(args);
 
 if (results.Errors.Any() || results.GetValue(pathArgument) is not FileInfo fileInfo)
@@ -73,12 +82,73 @@ float scale = results.GetValue(scaleOption);
 
 int seed = results.GetValue(seedOption);
 string path = Path.GetFullPath(fileInfo.FullName);
-string[] pipelineArgs = results.GetValue(pipelineArgument) ?? [];
 
+/// ----------------------------------------------
+/// Pipeline parsing
+/// ----------------------------------------------
+string[] pipelineArgsStrings = results.GetValue(pipelineArgument) ?? [];
+
+byte[,] byteGrid = null!;
+Tiles[,] tileGrid = null!;
+Type lastType = null!;
+for (int i = 0; i < pipelineArgsStrings.Length; i++)
+{
+    string name = pipelineArgsStrings[i];
+    IGenerator gen = generators[name];
+
+    string[] genArgs = new string[gen.ArgsCount];
+    int argOffset = 0;
+    for (; argOffset < genArgs.Length; argOffset++)
+    {
+        genArgs[argOffset] = pipelineArgsStrings[i + argOffset + 1];
+    }
+
+    gen.Parse(genArgs);
+
+    bool first = i == 0;
+    if (!(first ^ gen.UsesInput))
+    {
+        Console.Error.WriteLine($"Invalid pipeline. Generator used at start {name} which requires input OR input provided to generator that doesn't need one.");
+        return 1;
+    }
+    if (!first)
+    {
+        if (gen.InputType != lastType)
+        {
+            Console.Error.WriteLine($"Invalid pipeline. Generator {name} uses {gen.InputType} as input, not {lastType}");
+            return 1;
+        }
+        if (gen.InputType == typeof(byte))
+            gen.SetBaseGrid(byteGrid);
+        else
+            gen.SetBaseGrid(tileGrid);
+    }
+
+    if (gen is IGenerator<byte> bGen)
+    {
+        byteGrid = bGen.Generate(width, height, seed);
+        lastType = typeof(byte);
+    }
+    else
+    {
+        tileGrid = ((IGenerator<Tiles>)gen).Generate(width, height, seed);
+        lastType = typeof(Tiles);
+    }
+
+    i += argOffset;
+}
+
+
+/// ----------------------------------------------
+/// Generating image
+/// ----------------------------------------------
 Console.WriteLine("Starting generation...");
-//var test = clamper.Generate(width, height, seed);
 
-//MapDrawer.DrawBitMap(path, test, scale, (int)scale);
+if (lastType == typeof(byte))
+    MapDrawer.DrawBitMap(path, byteGrid, scale, (int)scale);
+else
+    MapDrawer.DrawBitMap(path, tileGrid, scale, (int)scale);
+
 Console.WriteLine($"Successfully created map at {path}");
 
 if (File.Exists(path))

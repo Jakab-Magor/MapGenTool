@@ -1,6 +1,6 @@
 ﻿namespace MapGenTool.Generators;
 
-public class SobelEdgeDetection : IGenerator<byte,byte>
+public class SobelEdgeDetection : IGenerator<byte>
 {
 
     private static readonly int[,] s_gx = new int[3, 3]
@@ -16,7 +16,14 @@ public class SobelEdgeDetection : IGenerator<byte,byte>
         {1,2,1 }
     };
 
-    public byte[,] Generate(byte[,] baseGrid,int width, int height, int seed)
+    public byte ArgsCount => 0;
+
+    public bool UsesInput => true;
+
+    public Type InputType => typeof(byte);
+    private byte[,] _baseGrid = null!;
+
+    public byte[,] Generate(int width, int height, int seed)
     {
         byte[,] resultGrid = new byte[width, height];
 
@@ -24,8 +31,8 @@ public class SobelEdgeDetection : IGenerator<byte,byte>
         {
             for (int x = 0; x < width; x++)
             {
-                int sumx = GetConvolutedValue(x, y, baseGrid, s_gx);
-                int sumy = GetConvolutedValue(x, y, baseGrid, s_gy);
+                int sumx = GetConvolutedValue(x, y, _baseGrid, s_gx);
+                int sumy = GetConvolutedValue(x, y, _baseGrid, s_gy);
 
                 float gradient = MathF.Sqrt(sumx * sumx + sumy * sumy);
                 resultGrid[x, y] = (byte)Math.Clamp(gradient, 0, 255);
@@ -34,6 +41,13 @@ public class SobelEdgeDetection : IGenerator<byte,byte>
         }
 
         return resultGrid;
+    }
+
+    public void Parse(params string[] args) { }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible
+    {
+        _baseGrid = IGenerator<byte>.CastGrid<T>(basegrid);
     }
 
     private int GetConvolutedValue(int x, int y, byte[,] baseGrid, int[,] convolutionMatrix)

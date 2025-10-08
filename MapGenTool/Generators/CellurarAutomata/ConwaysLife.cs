@@ -1,12 +1,20 @@
-﻿namespace MapGenTool.Generators.CellurarAutomata;
+﻿
+namespace MapGenTool.Generators.CellurarAutomata;
 
-public class ConwaysLife(int iterations) : IGenerator<Tiles,Tiles>
+public class ConwaysLife : IGenerator<Tiles>
 {
-    public int Iterations { get; set; } = iterations;
+    public int Iterations { get; set; }
+    private Tiles[,] _baseGrid = null!;
 
-    public Tiles[,] Generate(Tiles[,] baseGrid,int width, int height, int seed)
+    public bool UsesInput => true;
+
+    public byte ArgsCount => 1;
+
+    public Type InputType => typeof(Tiles);
+
+    public Tiles[,] Generate(int width, int height, int seed)
     {
-        Tiles[,] prevGrid = baseGrid;
+        Tiles[,] prevGrid = _baseGrid;
         Tiles[,] nextGrid = new Tiles[width, height];
 
         for (int i = 0; i < Iterations; i++)
@@ -56,5 +64,15 @@ public class ConwaysLife(int iterations) : IGenerator<Tiles,Tiles>
         if (aliveNeighbours > 1 && aliveNeighbours < 4)
             return Tiles.Space;
         return Tiles.Wall;
+    }
+
+    public void Parse(params string[] args)
+    {
+        Iterations = int.Parse(args[0]);
+    }
+
+    public void SetBaseGrid<T>(T[,] basegrid) where T: IConvertible
+    {
+        _baseGrid = IGenerator<Tiles>.CastGrid<T>(basegrid);
     }
 }
