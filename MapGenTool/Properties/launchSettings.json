@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-w 120 --height 30 -S 36 -s 32 ./test.png voronoi 10 sobel treshold-clamper 0.2"
+      "commandLineArgs": "-bd -w 120 --height 30 -S 36 -s 32 ./test.png voronoi 10 sobel treshold-clamper 0.2"
     }
   }
 }
