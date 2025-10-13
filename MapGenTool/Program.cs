@@ -6,6 +6,7 @@ using MapGenTool.Generators.ErosionGenerators;
 using MapGenTool.Generators.NoiseGenerators;
 using MapGenTool.Generators.RoomGenerators;
 using System.Diagnostics;
+using System.Text;
 
 /// ----------------------------------------------
 /// CLI tooling
@@ -33,7 +34,7 @@ Option<bool> benchmarkingOption = new("--benchmark", "-b") {
     Required = false,
     DefaultValueFactory = parseResult => false
 };
-Option<bool> displayImageOption = new Option<bool>("--display", "-d") {
+Option<bool> displayImageOption = new("--display", "-d") {
     Description = "Open image in default image viewer after finished running.",
     Required = false,
     DefaultValueFactory = parseResult => false
@@ -65,7 +66,8 @@ Dictionary<string, IGenerator> generators = new(){
     { "treshold-clamper", new ThresholdClamper()},
     { "conways", new ConwaysLife()},
     { "drunkards-walk", new DrunkardsWalk()},
-    { "simple-noise", new SimpleNoise()},
+    { "simple-noise", new WhiteNoise()},
+    { "basic-rooms", new BasicRoomGenerator() },
 };
 
 /// ----------------------------------------------
@@ -88,7 +90,6 @@ bool displayBenchmark = results.GetValue(benchmarkingOption);
 bool displayImageInExplorer = results.GetValue(displayImageOption);
 
 int seed = results.GetValue(seedOption);
-string path = Path.GetFullPath(fileInfo.FullName);
 
 /// ----------------------------------------------
 /// Pipeline parsing
@@ -153,6 +154,24 @@ for (int i = 0; i < pipelineArgsStrings.Length; i++) {
 /// Generating image
 /// ----------------------------------------------
 
+string[] fileNameSegments = fileInfo.Name.Split('.');
+StringBuilder pathBuilder = new();
+int counter = 1;
+do {
+    pathBuilder.Clear();
+    pathBuilder.Append(fileNameSegments[0]);
+    pathBuilder.Append('_');
+    pathBuilder.Append(counter);
+    for (int i = 1; i <= fileNameSegments.Length - 1; i++) {
+        pathBuilder.Append('.');
+        pathBuilder.Append(fileNameSegments[i]);
+    }
+    pathBuilder.Insert(0, '\\');
+    pathBuilder.Insert(0, fileInfo.DirectoryName);
+    counter++;
+} while (File.Exists(pathBuilder.ToString()));
+
+string path = pathBuilder.ToString();
 if (lastType == typeof(byte))
     MapDrawer.DrawBitMap(path, byteGrid, scale, (int)scale);
 else
@@ -163,29 +182,18 @@ Console.WriteLine($"Successfully created map at {path}");
 if (!displayImageInExplorer)
     return 0;
 
-if (File.Exists(path)) {
-    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-}
-else {
-    Console.WriteLine("Failed to find the image file.");
-}
-
+Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
 return 0;
 
 /// -----------------------------------
 /// TODO:
 /// -----------------------------------
-/// - Own Erosion algorythm
 /// - Diffusion limited aggregation
-/// - Perlin noise
-/// - Simplex noise
 /// - Dijkstra map
-/// - Simple room placer
 /// - Fused room placer
 /// - Prefab based generator
+///     - JSON maybe
 /// - Wave function collapse
-/// - Map Drawer file handling
-///     - Name files so no overrides
 /// - Refactor to not use polymorphism
 /// 
 /// -----------------------------------
