@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-bd -w 120 --height 30 -S 36 -s 32 ./test.png basic-room 10 3 20"
+      "commandLineArgs": "-bd -W 120 -H 30 -S 36 -s 32 ./test.png prefab prefab_test_7_7.prefab"
     }
   }
 }

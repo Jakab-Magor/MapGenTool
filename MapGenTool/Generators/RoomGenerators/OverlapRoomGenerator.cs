@@ -1,51 +1,72 @@
 ﻿
 using MapGenTool.Generic;
-using System.Drawing;
 
 namespace MapGenTool.Generators.RoomGenerators;
 
-class BasicRoomGenerator : IGenerator<Tiles> {
+class OverlapRoomGenerator : IGenerator<Tiles> {
     public byte ArgsCount => 3;
 
     public bool UsesInput => false;
-    public int RoomsCount { get; set; }
+
+    public Type InputType => throw new NotImplementedException();
+    public int RoomCount { get; set; }
     public int MinSize { get; set; }
     public int MaxSize { get; set; }
 
-    public Type InputType => throw new NotImplementedException();
-
     public Tiles[,] Generate(int width, int height, int seed) {
-        Tiles[,] grid = new Tiles[width, height];
         Random rng = new(seed);
-        List<Room> rooms = [];
+        Tiles[,] grid = new Tiles[width, height];
+        Room[] rooms = new Room[RoomCount];
+        // Index of i contains connected room index
+        // if 2 is connected to 3 then cRoomIndxs[3] = 2
+        // reverse order because forward for
+        int[] cRoomIndxs = new int[RoomCount];
 
-        long terminationCount = RoomsCount * RoomsCount * RoomsCount;
-        int tryCount = 0;
-
-        while (rooms.Count < RoomsCount && tryCount < terminationCount) {
+        for (int i = 0; i < RoomCount; i++) {
             IntVector2 size = new(rng.Next(MinSize, MaxSize - 1), rng.Next(MinSize, MaxSize - 1));
             IntVector2 pos = new(rng.Next(0, width - size.x - 1), rng.Next(0, height - size.y - 1));
             Room tmpRoom = new(pos, size);
-            int j = 0;
-            while (j < rooms.Count && !IsOverLapping(rooms[j], tmpRoom, IntVector2.One)) {
-                j++;
+
+            bool insideAnother = false;
+            bool overLapsAnother = false;
+            for (int j = i - 1; j >= 0; j--) {
+                Room curRoom = rooms[j];
+                if (IsInside(curRoom, tmpRoom)) {
+                    insideAnother = true;
+                    break;
+                }
+                if (IsOverLapping(curRoom, tmpRoom)) {
+                    cRoomIndxs[i] = j;
+                    overLapsAnother = true;
+                    break;
+                }
             }
-            if (j < rooms.Count) {
-                tryCount++;
+            if (insideAnother) {
+                i--;
                 continue;
             }
-            if (rooms.Count > 0)
-                DrawCorridors(ref grid, rooms[^1], tmpRoom);
-            rooms.Add(tmpRoom);
+            if (!overLapsAnother) {
+                cRoomIndxs[i] = -1;
+            }
 
+            rooms[i] = tmpRoom;
             DrawRoom(ref grid, tmpRoom);
-            Console.WriteLine(tryCount);
-            tryCount = 0;
         }
-        Console.WriteLine($"terminated at {tryCount} tries");
+        for (int i = RoomCount - 1; i >= 0; i--) {
+            if (cRoomIndxs[i] == -1) {
+                int j = RoomCount - 1;
+                while (cRoomIndxs[j]!=-1) {
+                    j = cRoomIndxs[j];
+                }
+                cRoomIndxs[j] = i;
+
+                DrawCorridors(ref grid, rooms[i], rooms[j]);
+            }
+        }
 
         return grid;
     }
+
     private void DrawRoom(ref Tiles[,] grid, Room room) {
         IntVector2 pos = room.Position;
         IntVector2 otherCorner = pos + room.Size;
@@ -55,11 +76,11 @@ class BasicRoomGenerator : IGenerator<Tiles> {
                 grid[x, y] = Tiles.Space;
     }
 
-    private bool IsOverLapping(Room a, Room b, IntVector2 margin) {
-        IntVector2 aPos = a.Position + margin;
-        IntVector2 aEnd = aPos + a.Size + margin;
-        IntVector2 bPos = b.Position + margin;
-        IntVector2 bEnd = bPos + b.Size + margin;
+    private bool IsOverLapping(Room a, Room b) {
+        IntVector2 aPos = a.Position;
+        IntVector2 aEnd = aPos + a.Size;
+        IntVector2 bPos = b.Position;
+        IntVector2 bEnd = bPos + b.Size;
 
         bool aLeftToB = aEnd.x < bPos.x;
         bool aRightToB = aPos.x > bEnd.x;
@@ -70,6 +91,17 @@ class BasicRoomGenerator : IGenerator<Tiles> {
             return false;
 
         return true;
+    }
+    private bool IsInside(Room a, Room b) {
+        IntVector2 aPos = a.Position;
+        IntVector2 aEnd = aPos + a.Size;
+        IntVector2 bPos = b.Position;
+        IntVector2 bEnd = bPos + b.Size;
+
+        bool bInsideA = aPos.x <= bPos.x && aPos.y <= bPos.y && aEnd.x >= bEnd.x && aEnd.y >= bEnd.y;
+        bool aInsideB = bPos.x <= aPos.x && bPos.y <= aPos.y && bEnd.x >= aEnd.x && bEnd.y >= aEnd.y;
+
+        return bInsideA || aInsideB;
     }
     private void DrawCorridors(ref Tiles[,] grid, Room a, Room b) {
         IntVector2 aCenter = a.Position + (a.Size / 2);
@@ -105,7 +137,7 @@ class BasicRoomGenerator : IGenerator<Tiles> {
     }
 
     public void Parse(params string[] args) {
-        RoomsCount = int.Parse(args[0]);
+        RoomCount = int.Parse(args[0]);
         MinSize = int.Parse(args[1]);
         MaxSize = int.Parse(args[2]);
     }

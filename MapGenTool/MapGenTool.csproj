@@ -18,4 +18,16 @@
     <Folder Include="Prefabs\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="prefab_test_5_5.prefab">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="prefab_test.prefab">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="prefab_test_7_7.prefab">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

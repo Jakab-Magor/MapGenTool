@@ -11,11 +11,11 @@ using System.Text;
 /// ----------------------------------------------
 /// CLI tooling
 /// ----------------------------------------------
-Option<int> widthOption = new("--width", "-w") {
+Option<int> widthOption = new("--width", "-W") {
     Description = "Width of the map",
     Required = true
 };
-Option<int> heightOption = new("--height", "-h") {
+Option<int> heightOption = new("--height", "-H") {
     Description = "Height of the map",
     Required = true
 };
@@ -62,12 +62,17 @@ rootCommand.Arguments.Add(pipelineArgument);
 Dictionary<string, IGenerator> generators = new(){
     { "voronoi", new VoronoiNoiseGenerator()},
     { "sobel", new SobelEdgeDetection()},
+    { "perwitt", new PerwittEdgeDetection()},
     { "bsp", new BSPTree()},
     { "treshold-clamper", new ThresholdClamper()},
     { "conways", new ConwaysLife()},
     { "drunkards-walk", new DrunkardsWalk()},
     { "simple-noise", new WhiteNoise()},
     { "basic-rooms", new BasicRoomGenerator() },
+    { "inverter", new Inverter() },
+    { "byte-inverter", new ByteInverter() },
+    { "overlap-rooms", new OverlapRoomGenerator() },
+    { "prefab", new PrefabGenerator() },
 };
 
 /// ----------------------------------------------
@@ -102,24 +107,31 @@ Tiles[,] tileGrid = null!;
 Type lastType = null!;
 for (int i = 0; i < pipelineArgsStrings.Length; i++) {
     string name = pipelineArgsStrings[i];
-    IGenerator gen = generators[name];
+    if (!generators.TryGetValue(name, out IGenerator? gen)) {
+        Console.Error.WriteLine($"Invalid pipeline. Unknown generator {name}.");
+        return 1;
+    }
 
     string[] genArgs = new string[gen.ArgsCount];
-    int argOffset = 0;
-    for (; argOffset < genArgs.Length; argOffset++) {
-        genArgs[argOffset] = pipelineArgsStrings[i + argOffset + 1];
+    int argsOffsetIndex = i + 1;
+    for (int argOffset = 0; argOffset < genArgs.Length && argsOffsetIndex < pipelineArgsStrings.Length; argOffset++, argsOffsetIndex++) {
+        genArgs[argOffset] = pipelineArgsStrings[argsOffsetIndex];
     }
+    /*if (argsOffsetIndex >= pipelineArgsStrings.Length) {
+        Console.Error.WriteLine($"Invalid pipeline arguments. Generator '{name}' requires {genArgs.Length} argument(s).");
+        return 1;
+    }*/
 
     gen.Parse(genArgs);
 
     bool first = i == 0;
     if (!(first ^ gen.UsesInput)) {
-        Console.Error.WriteLine($"Invalid pipeline. Generator used at start {name} which requires input OR input provided to generator that doesn't need one.");
+        Console.Error.WriteLine($"Invalid pipeline. Generator used at start '{name}' which requires input OR input provided to generator that doesn't need one.");
         return 1;
     }
     if (!first) {
         if (gen.InputType != lastType) {
-            Console.Error.WriteLine($"Invalid pipeline. Generator {name} uses {gen.InputType} as input, not {lastType}");
+            Console.Error.WriteLine($"Invalid pipeline. Generator '{name}' was given invalid input that is of type '{lastType.Name}' and not '{gen.InputType.Name}' which it uses.");
             return 1;
         }
         if (gen.InputType == typeof(byte))
@@ -142,7 +154,7 @@ for (int i = 0; i < pipelineArgsStrings.Length; i++) {
         lastType = typeof(Tiles);
     }
 
-    i += argOffset;
+    i = argsOffsetIndex - 1;
     if (displayBenchmark) {
         TimeSpan time = sWatch.Elapsed;
         Console.WriteLine($"\t{name} ({String.Join(", ", genArgs)}): {time.TotalMilliseconds}ms");
