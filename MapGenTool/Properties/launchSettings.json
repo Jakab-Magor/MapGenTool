@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-bd -W 120 -H 30 -S 36 -s 32 ./test.png prefab prefab_test_7_7.prefab"
+      "commandLineArgs": "-bd -W 120 -H 30 -S 36 -s 32 ./test.png voronoi 6 sobel treshold-clamper 0.4"
     }
   }
 }

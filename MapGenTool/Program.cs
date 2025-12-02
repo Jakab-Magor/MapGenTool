@@ -29,10 +29,15 @@ Option<int> seedOption = new("--seed", "-s") {
     Required = false,
     DefaultValueFactory = parseResult => Random.Shared.Next()
 };
-Option<bool> benchmarkingOption = new("--benchmark", "-b") {
+/*Option<bool> benchmarkingOption = new("--benchmark", "-b") {
     Description = "Whether the program should display benchmarking for each pass.",
     Required = false,
     DefaultValueFactory = parseResult => false
+};*/
+Option<Verbosity> verbosityOption = new("--verbose", "-v") {
+    Description = "Verbosity of the output",
+    Required = false,
+    DefaultValueFactory = parseResult => Verbosity.Generators
 };
 Option<bool> displayImageOption = new("--display", "-d") {
     Description = "Open image in default image viewer after finished running.",
@@ -51,7 +56,8 @@ rootCommand.Options.Add(widthOption);
 rootCommand.Options.Add(heightOption);
 rootCommand.Options.Add(scaleOption);
 rootCommand.Options.Add(seedOption);
-rootCommand.Options.Add(benchmarkingOption);
+//rootCommand.Options.Add(benchmarkingOption);
+rootCommand.Options.Add(verbosityOption);
 rootCommand.Options.Add(displayImageOption);
 rootCommand.Arguments.Add(pathArgument);
 rootCommand.Arguments.Add(pipelineArgument);
@@ -91,7 +97,8 @@ int width = results.GetValue(widthOption);
 int height = results.GetValue(heightOption);
 
 float scale = results.GetValue(scaleOption);
-bool displayBenchmark = results.GetValue(benchmarkingOption);
+//bool displayBenchmark = results.GetValue(benchmarkingOption);
+Verbosity verbosity = results.GetValue(verbosityOption);
 bool displayImageInExplorer = results.GetValue(displayImageOption);
 
 int seed = results.GetValue(seedOption);
@@ -155,9 +162,13 @@ for (int i = 0; i < pipelineArgsStrings.Length; i++) {
     }
 
     i = argsOffsetIndex - 1;
-    if (displayBenchmark) {
+    StringBuilder lineBuilder = new();
+    if (verbosity.HasFlag((Verbosity)2)) {
+        lineBuilder.AppendLine($"\t{i + 1}.{name} ({String.Join(", ", genArgs)})");
+    }
+    if (verbosity.HasFlag((Verbosity)8)) {
         TimeSpan time = sWatch.Elapsed;
-        Console.WriteLine($"\t{name} ({String.Join(", ", genArgs)}): {time.TotalMilliseconds}ms");
+        lineBuilder.AppendLine($": {time.TotalMilliseconds}ms");
     }
 }
 
@@ -189,7 +200,8 @@ if (lastType == typeof(byte))
 else
     MapDrawer.DrawBitMap(path, tileGrid, scale, (int)scale);
 
-Console.WriteLine($"Successfully created map at {path}");
+if (verbosity.HasFlag(Verbosity.Finished))
+    Console.WriteLine($"Successfully created map at {path}");
 
 if (!displayImageInExplorer)
     return 0;
@@ -203,18 +215,6 @@ return 0;
 /// - Diffusion limited aggregation
 /// - Dijkstra map
 /// - Fused room placer
-/// - Prefab based generator
-///     - JSON maybe
 /// - Wave function collapse
 /// - Refactor to not use polymorphism
 /// 
-/// -----------------------------------
-/// Questions to Orosz:
-/// -----------------------------------
-/// - Documentation generraly
-/// - Documentation in comments
-/// - Code readability
-/// - Optimization
-///     - Multithreading and GPU
-/// - Making GUI tester for testing
-/// - Benchmarking included for algorythms

@@ -1,6 +1,6 @@
 ﻿using MapGenTool.Generic;
 
-namespace MapGenTool.Generators.RoomGenerators;
+namespace MapGenTool.Generators;
 
 internal class BSPNode(
     BSPNode? parent,

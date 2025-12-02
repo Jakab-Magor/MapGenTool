@@ -1,44 +1,32 @@
-﻿using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
-using MapGenTool.Generic;
+﻿using MapGenTool.Generic;
 
-namespace MapGenTool.Generators.NoiseGenerators;
+namespace MapGenTool.Generators;
 
-public class VoronoiNoiseGenerator() : IGenerator<byte> {
-
-    [Range(minimum: 1, maximum: int.MaxValue, MinimumIsExclusive = true)]
-    public int TilesPerChunk { get; set; }
-    public bool UsesInput => false;
-    public bool[,] BaseGrid { set => throw new NotImplementedException(); }
-
-    public byte ArgsCount => 1;
-
-    public Type InputType => throw new NotImplementedException();
-
-    public byte[,] Generate(int width, int height, int seed) {
+public static partial class Noise {
+    public static byte[,] Voronoi(int width, int height, int seed, int chunkSize) {
         byte[,] tiles = new byte[width, height];
         Random rng = new(seed);
 
-        int seedsWidth = (int)Math.Ceiling(width / (float)TilesPerChunk);
-        int seedsHeight = (int)Math.Ceiling(height / (float)TilesPerChunk);
+        int seedsWidth = (int)Math.Ceiling(width / (float)chunkSize);
+        int seedsHeight = (int)Math.Ceiling(height / (float)chunkSize);
 
         IntVector2[,] seeds = new IntVector2[seedsWidth, seedsHeight];
         for (int x = 0; x < seedsWidth; x++) {
             for (int y = 0; y < seedsHeight; y++) {
-                IntVector2 relativePositionInChunk = new(rng.Next(0, TilesPerChunk), rng.Next(0, TilesPerChunk));
+                IntVector2 relativePositionInChunk = new(rng.Next(0, chunkSize), rng.Next(0, chunkSize));
                 seeds[x, y] = relativePositionInChunk;
             }
         }
-        float maxDist = new IntVector2(TilesPerChunk, TilesPerChunk).Magnitude2;
+        float maxDist = new IntVector2(chunkSize, chunkSize).Magnitude2;
 
         for (int y = 0, yInChunk = 0, chunkY = 0; y < height; y++, yInChunk++) {
-            if (yInChunk >= TilesPerChunk) {
+            if (yInChunk >= chunkSize) {
                 yInChunk = 0;
                 chunkY++;
             }
 
             for (int x = 0, xInChunk = 0, chunkX = 0; x < width; x++, xInChunk++) {
-                if (xInChunk >= TilesPerChunk) {
+                if (xInChunk >= chunkSize) {
                     xInChunk = 0;
                     chunkX++;
                 }
@@ -52,7 +40,7 @@ public class VoronoiNoiseGenerator() : IGenerator<byte> {
                             continue;
 
                         IntVector2 seedPos = seeds[l, m];
-                        seedPos += new IntVector2(i, j) * TilesPerChunk;
+                        seedPos += new IntVector2(i, j) * chunkSize;
                         IntVector2 tilePosInChunk = new(xInChunk, yInChunk);
 
                         IntVector2 differenceVector = (tilePosInChunk - seedPos);
@@ -70,13 +58,5 @@ public class VoronoiNoiseGenerator() : IGenerator<byte> {
         }
 
         return tiles;
-    }
-
-    public void Parse(params string[] args) {
-        TilesPerChunk = int.Parse(args[0]);
-    }
-
-    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible {
-        throw new NotImplementedException();
     }
 }
