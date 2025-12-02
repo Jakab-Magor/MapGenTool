@@ -1,12 +1,10 @@
-﻿using System.CommandLine;
-using MapGenTool;
+﻿using MapGenTool;
 using MapGenTool.Generators;
-using MapGenTool.Generators.CellurarAutomata;
-using MapGenTool.Generators.ErosionGenerators;
-using MapGenTool.Generators.NoiseGenerators;
-using MapGenTool.Generators.RoomGenerators;
+using System.CommandLine;
 using System.Diagnostics;
+using System.Drawing;
 using System.Text;
+using System.Xml.Linq;
 
 /// ----------------------------------------------
 /// CLI tooling
@@ -63,25 +61,6 @@ rootCommand.Arguments.Add(pathArgument);
 rootCommand.Arguments.Add(pipelineArgument);
 
 /// ----------------------------------------------
-/// Generator instantiation for pipeline parsing
-/// ----------------------------------------------
-Dictionary<string, IGenerator> generators = new(){
-    { "voronoi", new VoronoiNoiseGenerator()},
-    { "sobel", new SobelEdgeDetection()},
-    { "perwitt", new PerwittEdgeDetection()},
-    { "bsp", new BSPTree()},
-    { "treshold-clamper", new ThresholdClamper()},
-    { "conways", new ConwaysLife()},
-    { "drunkards-walk", new DrunkardsWalk()},
-    { "simple-noise", new WhiteNoise()},
-    { "basic-rooms", new BasicRoomGenerator() },
-    { "inverter", new Inverter() },
-    { "byte-inverter", new ByteInverter() },
-    { "overlap-rooms", new OverlapRoomGenerator() },
-    { "prefab", new PrefabGenerator() },
-};
-
-/// ----------------------------------------------
 /// Parsing
 /// ----------------------------------------------
 ParseResult results = rootCommand.Parse(args);
@@ -112,40 +91,60 @@ string[] pipelineArgsStrings = results.GetValue(pipelineArgument) ?? [];
 byte[,] byteGrid = null!;
 Tiles[,] tileGrid = null!;
 Type lastType = null!;
+
+ParseTreeNode parseRoot = new(null, default);
+// Construct Parsetree
+for (int i = 0; i < pipelineArgsStrings.Length; i++) {
+    
+}
+
 for (int i = 0; i < pipelineArgsStrings.Length; i++) {
     string name = pipelineArgsStrings[i];
-    if (!generators.TryGetValue(name, out IGenerator? gen)) {
-        Console.Error.WriteLine($"Invalid pipeline. Unknown generator {name}.");
-        return 1;
-    }
 
-    string[] genArgs = new string[gen.ArgsCount];
-    int argsOffsetIndex = i + 1;
-    for (int argOffset = 0; argOffset < genArgs.Length && argsOffsetIndex < pipelineArgsStrings.Length; argOffset++, argsOffsetIndex++) {
-        genArgs[argOffset] = pipelineArgsStrings[argsOffsetIndex];
-    }
-    /*if (argsOffsetIndex >= pipelineArgsStrings.Length) {
-        Console.Error.WriteLine($"Invalid pipeline arguments. Generator '{name}' requires {genArgs.Length} argument(s).");
-        return 1;
-    }*/
-
-    gen.Parse(genArgs);
-
-    bool first = i == 0;
-    if (!(first ^ gen.UsesInput)) {
-        Console.Error.WriteLine($"Invalid pipeline. Generator used at start '{name}' which requires input OR input provided to generator that doesn't need one.");
-        return 1;
-    }
-    if (!first) {
-        if (gen.InputType != lastType) {
-            Console.Error.WriteLine($"Invalid pipeline. Generator '{name}' was given invalid input that is of type '{lastType.Name}' and not '{gen.InputType.Name}' which it uses.");
+    switch (name) {
+        case "voronoi":
+            if (i > 0) goto notFirstGeneratorError;
+            break;
+        case "sobel":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "perwitt":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "bsp":
+            if (i > 0) goto notFirstGeneratorError;
+            break;
+        case "treshold-clamper":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "conways":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "drunkards-walk":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "simple-noise":
+            break;
+        case "basic-rooms":
+            break;
+        case "inverter":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "byte-inverter":
+            if (i == 0) goto firstGeneratorError;
+            break;
+        case "overlap-rooms":
+            break;
+        case "prefab":
+            break;
+        default:
+            Console.Error.WriteLine($"Invalid pipeline. Unknown generator {name}.");
             return 1;
-        }
-        if (gen.InputType == typeof(byte))
-            gen.SetBaseGrid(byteGrid);
-        else
-            gen.SetBaseGrid(tileGrid);
     }
+
+    Console.Error.WriteLine($"Invalid pipeline. Generator used at start '{name}' which requires input.");
+
+    Console.Error.WriteLine($"Invalid pipeline. Generator '{name}' cannot be used with an input.");
 
     Stopwatch sWatch = new();
     if (gen is IGenerator<byte> bGen) {
@@ -170,8 +169,20 @@ for (int i = 0; i < pipelineArgsStrings.Length; i++) {
         TimeSpan time = sWatch.Elapsed;
         lineBuilder.AppendLine($": {time.TotalMilliseconds}ms");
     }
-}
 
+    string[] fetchArgs(int count) {
+        string[] genArgs = new string[count];
+        int argsOffsetIndex = i + 1;
+        for (int argOffset = 0; argOffset < genArgs.Length && argsOffsetIndex < pipelineArgsStrings.Length; argOffset++, argsOffsetIndex++) {
+            genArgs[argOffset] = pipelineArgsStrings[argsOffsetIndex];
+        }
+        /*if (argsOffsetIndex >= pipelineArgsStrings.Length) {
+            Console.Error.WriteLine($"Invalid pipeline arguments. Generator '{name}' requires {genArgs.Length} argument(s).");
+            return 1;
+        }*/
+        return genArgs;
+    }
+}
 
 /// ----------------------------------------------
 /// Generating image

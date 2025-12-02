@@ -13,6 +13,36 @@ public static partial class Rooms {
         long terminationCount = RoomsCount * RoomsCount * RoomsCount;
         int tryCount = 0;
 
+        while (rooms.Count < RoomsCount && tryCount < terminationCount) {
+            IntVector2 size = new(rng.Next(MinSize, MaxSize - 1), rng.Next(MinSize, MaxSize - 1));
+            IntVector2 pos = new(rng.Next(0, width - size.x - 1), rng.Next(0, height - size.y - 1));
+            Room tmpRoom = new(pos, size);
+            int j = 0;
+            while (j < rooms.Count && !IsOverLapping(rooms[j], tmpRoom, IntVector2.One)) {
+                j++;
+            }
+            if (j < rooms.Count) {
+                tryCount++;
+                continue;
+            }
+            if (rooms.Count > 0)
+                DrawCorridors(ref grid, rooms[^1], tmpRoom);
+            rooms.Add(tmpRoom);
+
+            // DrawRoom
+            IntVector2 otherCorner = pos + size;
+
+            for (int y = pos.y; y < otherCorner.y; y++)
+                for (int x = pos.x; x < otherCorner.x; x++)
+                    grid[x, y] = Tiles.Space;
+
+            //Console.WriteLine(tryCount);
+            tryCount = 0;
+        }
+        //Console.WriteLine($"terminated at {tryCount} tries");
+
+        return grid;
+
         static bool IsOverLapping(Room a, Room b, IntVector2 margin) {
             IntVector2 aPos = a.Position + margin;
             IntVector2 aEnd = aPos + a.Size + margin;
@@ -61,35 +91,5 @@ public static partial class Rooms {
                     grid[x, bCenter.y] = Tiles.Space;
             }
         }
-
-        while (rooms.Count < RoomsCount && tryCount < terminationCount) {
-            IntVector2 size = new(rng.Next(MinSize, MaxSize - 1), rng.Next(MinSize, MaxSize - 1));
-            IntVector2 pos = new(rng.Next(0, width - size.x - 1), rng.Next(0, height - size.y - 1));
-            Room tmpRoom = new(pos, size);
-            int j = 0;
-            while (j < rooms.Count && !IsOverLapping(rooms[j], tmpRoom, IntVector2.One)) {
-                j++;
-            }
-            if (j < rooms.Count) {
-                tryCount++;
-                continue;
-            }
-            if (rooms.Count > 0)
-                DrawCorridors(ref grid, rooms[^1], tmpRoom);
-            rooms.Add(tmpRoom);
-
-            // DrawRoom
-            IntVector2 otherCorner = pos + tmpRoom.Size;
-
-            for (int y = pos.y; y < otherCorner.y; y++)
-                for (int x = pos.x; x < otherCorner.x; x++)
-                    grid[x, y] = Tiles.Space;
-
-            //Console.WriteLine(tryCount);
-            tryCount = 0;
-        }
-        //Console.WriteLine($"terminated at {tryCount} tries");
-
-        return grid;
     }
 }
