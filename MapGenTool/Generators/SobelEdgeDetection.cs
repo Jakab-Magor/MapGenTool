@@ -1,6 +1,6 @@
 ﻿namespace MapGenTool.Generators;
 
-public static partial class Rooms {
+public static partial class EdgeDetection {
     public static byte[,] Sobel(int width, int height, int seed, byte[,] baseGrid) {
         byte[,] resultGrid = new byte[width, height];
 

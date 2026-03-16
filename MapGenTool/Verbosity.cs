@@ -1,5 +1,5 @@
 ﻿[Flags]
-enum Verbosity {
+enum Verbosity:int {
     None = 0,
     Finished = 1,
     // 2 Generators
@@ -8,6 +8,8 @@ enum Verbosity {
     ParseTree = 7,
     // 8 Benchmarking
     Benchmarking = 10,
+
+    All = 2147483647,
 }
 
 /// -----------------------------------

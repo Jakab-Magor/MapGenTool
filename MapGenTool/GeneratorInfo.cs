@@ -1,3 +1,8 @@
 ﻿namespace MapGenTool;
-internal class GeneratorInfo(int paramCount, bool binaryOperation) {
+internal enum GeneratorTypes : byte {
+    First,
+    Follower,
+    Binary
+}
+internal record class GeneratorInfo(int paramCount, GeneratorTypes generatorType, Type returnType) {
 }

@@ -2,10 +2,9 @@
 
 namespace MapGenTool;
 
-internal class ParseTreeNode(
-    ParseTreeNode? parent,
-    GeneratorInfo info,
-    ParseTreeNode? left = null,
-    ParseTreeNode? right = null) {
-
+public class ParseTreeNode(ParseTreeNode? parent,string[] contents) {
+    public ParseTreeNode? parent = parent;
+    public string[] contents = contents;
+    public ParseTreeNode? left = null;
+    public ParseTreeNode? right = null;
 }

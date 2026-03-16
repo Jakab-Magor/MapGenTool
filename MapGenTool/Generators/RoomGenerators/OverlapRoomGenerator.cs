@@ -3,7 +3,7 @@ using MapGenTool.Generic;
 
 namespace MapGenTool.Generators;
 
-class static partial class Rooms {
+static partial class Rooms {
     public static Tiles[,] OverlapRooms(int width, int height, int seed, int roomCount, int minSize, int maxSize) {
         Random rng = new(seed);
         Tiles[,] grid = new Tiles[width, height];
