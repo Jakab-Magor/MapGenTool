@@ -102,7 +102,7 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "multiply",           new (paramCount: 0, GeneratorTypes.Binary,   returnType: typeof(byte))},
     { "checkerboard",       new (paramCount: 2, GeneratorTypes.First,    returnType: typeof(byte))},
     { "perlin",             new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "validate",           new (paramCount: 0, GeneratorTypes.Follower, returnType: typeof(byte))},
+    { "validate",           new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(Tiles))},
 };
 
 /// ----------------------------------------------
@@ -164,6 +164,21 @@ Stack<Tiles[,]> tileStack = new();
                 idx = n - 1;
                 break;
         }
+
+        StringBuilder lineBuilder = new("\t");
+        if (verbosity.HasFlag((Verbosity)4)) {
+            for (int nests = 0; nests < nesting; nests++) {
+                lineBuilder.Append(' ');
+            }
+        }
+        if (verbosity.HasFlag((Verbosity)2)) {
+            lineBuilder.Append($"{name} ({String.Join(", ", generatorArgs)})");
+        }
+        if (verbosity.HasFlag((Verbosity)8)) {
+            lineBuilder.Append(": ");
+        }
+        Console.Write(lineBuilder.ToString());
+        lineBuilder.Clear();
 
         Stopwatch sWatch = new();
         try {
@@ -235,11 +250,12 @@ Stack<Tiles[,]> tileStack = new();
                         int.Parse(generatorArgs[0])));
                     break;
                 case "validate":
-                    byteStack.Push(Misc.Validate(width, height, tileStack.Pop()));
+                    tileStack.Push(Misc.Validate(width, height, tileStack.Pop(),
+                        int.Parse(generatorArgs[0])));
                     break;
             }
             sWatch.Stop();
-        } catch (IndexOutOfRangeException ioore) {
+        } catch (IndexOutOfRangeException) {
             throw new IndexOutOfRangeException($"Invalid pipeline. Not enough arguments provided to \"{name}\".");
         } catch (FormatException formatE) {
             throw new FormatException($"Invalid pipeline. Cannot interpret {formatE} as valid value to \"{name}\".");
@@ -249,18 +265,9 @@ Stack<Tiles[,]> tileStack = new();
             throw new InvalidOperationException($"Invalid pipeline. No valid input provided to \"{name}\". {iOpE.Message}");
         }
 
-        StringBuilder lineBuilder = new("\t");
-        if (verbosity.HasFlag((Verbosity)4)) {
-            for (int nests = 0; nests < nesting; nests++) {
-                lineBuilder.Append(' ');
-            }
-        }
-        if (verbosity.HasFlag((Verbosity)2)) {
-            lineBuilder.Append($"{name} ({String.Join(", ", generatorArgs)})");
-        }
         if (verbosity.HasFlag((Verbosity)8)) {
             TimeSpan time = sWatch.Elapsed;
-            lineBuilder.Append($": {time.TotalMilliseconds}ms");
+            lineBuilder.Append($"{time.TotalMilliseconds}ms");
         }
         Console.WriteLine(lineBuilder.ToString());
 
