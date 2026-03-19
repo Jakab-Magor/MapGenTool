@@ -4,16 +4,16 @@ using MapGenTool.Generic;
 namespace MapGenTool.Generators;
 
 public static partial class Rooms {
-    public static Tiles[,] BasicRooms(int width, int height, int seed, int RoomsCount, int MinSize, int MaxSize) {
+    public static Tiles[,] BasicRooms(int width, int height, int seed, int roomsCount, int minSize, int maxSize) {
         Tiles[,] grid = new Tiles[width, height];
         Random rng = new(seed);
         List<Room> rooms = [];
 
-        long terminationCount = RoomsCount * RoomsCount * RoomsCount;
+        long terminationCount = roomsCount * roomsCount * roomsCount;
         int tryCount = 0;
 
-        while (rooms.Count < RoomsCount && tryCount < terminationCount) {
-            IntVector2 size = new(rng.Next(MinSize, MaxSize - 1), rng.Next(MinSize, MaxSize - 1));
+        while (rooms.Count < roomsCount && tryCount < terminationCount) {
+            IntVector2 size = new(rng.Next(minSize, maxSize - 1), rng.Next(minSize, maxSize - 1));
             IntVector2 pos = new(rng.Next(0, width - size.x - 1), rng.Next(0, height - size.y - 1));
             Room tmpRoom = new(pos, size);
             int j = 0;

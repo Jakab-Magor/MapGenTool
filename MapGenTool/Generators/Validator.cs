@@ -153,9 +153,10 @@ public static partial class Misc {
                         continue;
                     }
 
-                    int boundsValue = boundsMap[nx, ny];
-                    const int zeroPenalty = 10;
-                    int moveCost = boundsValue == 0 ? zeroPenalty : 1;
+                    int tileValue = islandMap[nx, ny];
+                    const int zeroPenalty = 100;
+                    // if wall
+                    int moveCost = tileValue == 0 ? zeroPenalty : 1;
 
                     AStarNode neighbour = new(nx, ny) {
                         g = current.g + moveCost,
@@ -165,13 +166,20 @@ public static partial class Misc {
 
                     AStarNode? existing = open.Find(n => n.x == nx && n.y == ny);
 
-                    if (existing is not null && existing.g < neighbour.g) {
-                        neighbour = existing;
+                    if (existing is not null) {
+                        if (existing.g < neighbour.g) {
+                            existing.g = neighbour.g;
+                            existing.parent = neighbour.parent;
+                        }
                         continue;
                     }
 
                     if (existing is null) {
-                        open.Add(neighbour);
+                        int o = 0;
+                        while (o < open.Count && final(open[o]) <= final(neighbour)) {
+                            o++;
+                        }
+                        open.Insert(o, neighbour);
                     }
                 }
             }
@@ -190,7 +198,9 @@ public static partial class Misc {
         }
 
         int heuristics(int x1, int y1, int x2, int y2) {
-            int dist = Math.Abs(x1 - x2) + Math.Abs(y1 - y2);
+            int difX = Math.Abs(x1 - x2);
+            int difY = Math.Abs(y1 - y2);
+            int dist = difX + difY;
             return dist;
         }
         int final(AStarNode node) {

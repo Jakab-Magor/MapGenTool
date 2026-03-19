@@ -192,10 +192,11 @@ Stack<Tiles[,]> tileStack = new();
         Stopwatch sWatch = new();
         try {
             sWatch.Start();
+            /// Include argument name for clarity
             switch (name) {
                 case "voronoi":
                     byteStack.Push(Noise.Voronoi(width, height, seed,
-                        int.Parse(generatorArgs[0])));
+                        chunkSize: int.Parse(generatorArgs[0])));
                     break;
                 case "sobel":
                     byteStack.Push(EdgeDetection.Sobel(width, height, seed, byteStack.Pop()));
@@ -205,30 +206,30 @@ Stack<Tiles[,]> tileStack = new();
                     break;
                 case "bsp":
                     tileStack.Push(Rooms.BSPRooms(width, height, seed,
-                        int.Parse(generatorArgs[0])));
+                        halfPartitionCount: int.Parse(generatorArgs[0])));
                     break;
                 case "treshold-clamper":
                     tileStack.Push(Misc.ThresholdClamper(width, height, seed, byteStack.Pop(),
-                        float.Parse(generatorArgs[0], CultureInfo.InvariantCulture)));
+                        threshold: float.Parse(generatorArgs[0], CultureInfo.InvariantCulture)));
                     break;
                 case "conways":
                     tileStack.Push(CellurarAutomata.ConwaysGameOfLife(width, height, seed, tileStack.Pop(),
-                        int.Parse(generatorArgs[0])));
+                        iterations: int.Parse(generatorArgs[0])));
                     break;
                 case "drunkards-walk":
                     tileStack.Push(Erosion.DrunkardsWalk(width, height, seed, tileStack.Pop(),
-                        int.Parse(generatorArgs[0]),
-                        int.Parse(generatorArgs[1]),
-                        int.Parse(generatorArgs[2])));
+                        agents: int.Parse(generatorArgs[0]),
+                        iterations: int.Parse(generatorArgs[1]),
+                        steps: int.Parse(generatorArgs[2])));
                     break;
                 case "simple-noise":
                     byteStack.Push(Noise.WhiteNoise(width, height, seed));
                     break;
                 case "basic-rooms":
                     tileStack.Push(Rooms.BasicRooms(width, height, seed,
-                        int.Parse(generatorArgs[0]),
-                        int.Parse(generatorArgs[1]),
-                        int.Parse(generatorArgs[2])));
+                        roomsCount: int.Parse(generatorArgs[0]),
+                        minSize: int.Parse(generatorArgs[1]),
+                        maxSize: int.Parse(generatorArgs[2])));
                     break;
                 case "inverter":
                     tileStack.Push(Misc.Inverter(width, height, seed, tileStack.Pop()));
@@ -238,29 +239,29 @@ Stack<Tiles[,]> tileStack = new();
                     break;
                 case "overlap-rooms":
                     tileStack.Push(Rooms.OverlapRooms(width, height, seed,
-                        int.Parse(generatorArgs[0]),
-                        int.Parse(generatorArgs[1]),
-                        int.Parse(generatorArgs[2])));
+                        roomCount: int.Parse(generatorArgs[0]),
+                        minSize: int.Parse(generatorArgs[1]),
+                        maxSize: int.Parse(generatorArgs[2])));
                     break;
                 case "prefab":
                     tileStack.Push(Rooms.Prefabs(width, height, seed,
-                        generatorArgs[0]));
+                        pathString: generatorArgs[0]));
                     break;
                 case "multiply":
                     byteStack.Push(Misc.Multiply(width, height, seed, byteStack.Pop(), byteStack.Pop()));
                     break;
                 case "checkerboard":
                     byteStack.Push(Patterns.Checkerboard(width, height, seed,
-                        byte.Parse(generatorArgs[0]),
-                        byte.Parse(generatorArgs[1])));
+                        dark: byte.Parse(generatorArgs[0]),
+                        light: byte.Parse(generatorArgs[1])));
                     break;
                 case "perlin":
                     byteStack.Push(Noise.Perlin2D(width, height, seed,
-                        int.Parse(generatorArgs[0])));
+                        size: int.Parse(generatorArgs[0])));
                     break;
                 case "validate":
                     tileStack.Push(Misc.Validate(width, height, tileStack.Pop(),
-                        int.Parse(generatorArgs[0])));
+                        cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
             }
             sWatch.Stop();
