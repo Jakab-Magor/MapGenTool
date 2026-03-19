@@ -174,11 +174,20 @@ Stack<Tiles[,]> tileStack = new();
         if (verbosity.HasFlag((Verbosity)2)) {
             lineBuilder.Append($"{name} ({String.Join(", ", generatorArgs)})");
         }
-        if (verbosity.HasFlag((Verbosity)8)) {
+        if (verbosity.HasFlag((Verbosity)8) || verbosity.HasFlag((Verbosity)16)) {
             lineBuilder.Append(": ");
         }
         Console.Write(lineBuilder.ToString());
         lineBuilder.Clear();
+
+        TextWriter stdOut = Console.Out;
+        (int colonX, int colonY) = Console.GetCursorPosition();
+        if (!verbosity.HasFlag((Verbosity)16)) {
+            Console.SetOut(TextWriter.Null);
+        } else {
+            Console.WriteLine();
+            Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
+        }
 
         Stopwatch sWatch = new();
         try {
@@ -265,12 +274,15 @@ Stack<Tiles[,]> tileStack = new();
             throw new InvalidOperationException($"Invalid pipeline. No valid input provided to \"{name}\". {iOpE.Message}");
         }
 
+        Console.SetOut(stdOut);
         if (verbosity.HasFlag((Verbosity)8)) {
+            (int beforeX, int beforeY) = Console.GetCursorPosition();
+            Console.SetCursorPosition(colonX, colonY);
             TimeSpan time = sWatch.Elapsed;
             lineBuilder.Append($"{time.TotalMilliseconds}ms");
+            Console.WriteLine(lineBuilder.ToString());
+            Console.SetCursorPosition(beforeX, beforeY);
         }
-        Console.WriteLine(lineBuilder.ToString());
-
         t = info.returnType;
         idx++;
 
@@ -282,6 +294,14 @@ Stack<Tiles[,]> tileStack = new();
     return (t, idx);
 }
 Type? lastType;
+#if DEBUG
+(lastType, _) = Parse(0, null, 0, 0);
+
+if (lastType is null) {
+    Console.Error.WriteLine("Pipeline Error. Empty pipeline.");
+    return 1;
+}
+#else
 try {
     (lastType, _) = Parse(0, null, 0, 0);
 
@@ -293,6 +313,8 @@ try {
     Console.Error.WriteLine(e.Message);
     return 1;
 }
+#endif
+
 /// ----------------------------------------------
 /// Generating image
 /// ----------------------------------------------
@@ -355,14 +377,3 @@ if (!displayImageInExplorer)
 
 Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
 return 0;
-
-/// -----------------------------------
-/// TODO:
-/// -----------------------------------
-/// - Diffusion limited aggregation
-/// - Dijkstra map
-/// - Fused room placer
-/// - Wave function collapse
-/// - Refactor to not use polymorphism
-/// - Floodfill
-/// 
