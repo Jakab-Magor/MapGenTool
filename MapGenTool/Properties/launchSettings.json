@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-d -v all -W 120 -H 80 -S 46 -s 32 ./test.png overlap-rooms 60 4 16"
+      "commandLineArgs": "-d -v all -W 120 -H 80 -S 46 -s 32 ./test.png voronoi 6 sobel treshold-clamper 0.3 validator 10"
     }
   }
 }

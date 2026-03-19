@@ -27,6 +27,18 @@ Option<int> seedOption = new("--seed", "-s") {
     Required = false,
     DefaultValueFactory = parseResult => Random.Shared.Next()
 };
+Option<bool> randomizeColorOption = new("--random-color", "-r") {
+    Description = "Randomize colors on grayscale images",
+    Required = false,
+    DefaultValueFactory = parseResult => false
+};
+// unimplemented due to needing a rewrite of whole printing
+// would ideally print everything regardless of verbosity
+/*Option<bool> generateLogOption = new("--log") {
+    Description = "Output full verbosity text to log with same name as file",
+    Required = false,
+    DefaultValueFactory = parseResult => false
+};*/
 /*Option<bool> benchmarkingOption = new("--benchmark", "-b") {
     Description = "Whether the program should display benchmarking for each pass.",
     Required = false,
@@ -54,6 +66,8 @@ rootCommand.Options.Add(widthOption);
 rootCommand.Options.Add(heightOption);
 rootCommand.Options.Add(scaleOption);
 rootCommand.Options.Add(seedOption);
+rootCommand.Options.Add(randomizeColorOption);
+//rootCommand.Options.Add(generateLogOption);
 //rootCommand.Options.Add(benchmarkingOption);
 rootCommand.Options.Add(verbosityOption);
 rootCommand.Options.Add(displayImageOption);
@@ -76,6 +90,8 @@ int width = results.GetValue(widthOption);
 int height = results.GetValue(heightOption);
 
 float scale = results.GetValue(scaleOption);
+bool randomizeColor = results.GetValue(randomizeColorOption);
+//bool generateLog = results.GetValue(generateLogOption);
 //bool displayBenchmark = results.GetValue(benchmarkingOption);
 Verbosity verbosity = results.GetValue(verbosityOption);
 bool displayImageInExplorer = results.GetValue(displayImageOption);
@@ -112,6 +128,28 @@ Console.WriteLine("Starting generation...");
 string[] pipeline = results.GetValue(pipelineArgument) ?? [];
 Stack<byte[,]> byteStack = new();
 Stack<Tiles[,]> tileStack = new();
+
+Type? lastType;
+#if DEBUG
+(lastType, _) = Parse(0, null, 0, 0);
+
+if (lastType is null) {
+    Console.Error.WriteLine("Pipeline Error. Empty pipeline.");
+    return 1;
+}
+#else
+try {
+    (lastType, _) = Parse(0, null, 0, 0);
+
+    if (lastType is null) {
+        Console.Error.WriteLine("Pipeline Error. Empty pipeline.");
+        return 1;
+    }
+} catch (Exception e) {
+    Console.Error.WriteLine(e.Message);
+    return 1;
+}
+#endif
 
 (Type? returnType, int nextIdx) Parse(int idx, Type? lastT, int lastP, int nesting) {
     Type? t = null;
@@ -184,7 +222,8 @@ Stack<Tiles[,]> tileStack = new();
         (int colonX, int colonY) = Console.GetCursorPosition();
         if (!verbosity.HasFlag((Verbosity)16)) {
             Console.SetOut(TextWriter.Null);
-        } else {
+        }
+        else {
             Console.WriteLine();
             Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
         }
@@ -265,15 +304,25 @@ Stack<Tiles[,]> tileStack = new();
                     break;
             }
             sWatch.Stop();
-        } catch (IndexOutOfRangeException) {
-            throw new IndexOutOfRangeException($"Invalid pipeline. Not enough arguments provided to \"{name}\".");
-        } catch (FormatException formatE) {
-            throw new FormatException($"Invalid pipeline. Cannot interpret {formatE} as valid value to \"{name}\".");
-        } catch (OverflowException overflowE) {
-            throw new OverflowException($"Invalid pipeline. Value of {overflowE} is too low or too high \"{name}\".");
-        } catch (InvalidOperationException iOpE) {
-            throw new InvalidOperationException($"Invalid pipeline. No valid input provided to \"{name}\". {iOpE.Message}");
         }
+#if !DEBUG
+        catch (IndexOutOfRangeException) {
+            throw new IndexOutOfRangeException($"Invalid pipeline. Not enough arguments provided to \"{name}\".");
+        }
+        catch (FormatException formatE) {
+            throw new FormatException($"Invalid pipeline. Cannot interpret {formatE} as valid value to \"{name}\".");
+        }
+        catch (OverflowException overflowE) {
+            throw new OverflowException($"Invalid pipeline. Value of {overflowE} is too low or too high \"{name}\".");
+        }
+        catch (InvalidOperationException iOpE) {
+            throw new InvalidOperationException($"Invalid pipeline. No valid input provided to \"{name}\". {iOpE.Message}");
+        } 
+#endif
+        catch {
+            throw;
+        }
+
 
         Console.SetOut(stdOut);
         if (verbosity.HasFlag((Verbosity)8)) {
@@ -294,27 +343,6 @@ Stack<Tiles[,]> tileStack = new();
 
     return (t, idx);
 }
-Type? lastType;
-#if DEBUG
-(lastType, _) = Parse(0, null, 0, 0);
-
-if (lastType is null) {
-    Console.Error.WriteLine("Pipeline Error. Empty pipeline.");
-    return 1;
-}
-#else
-try {
-    (lastType, _) = Parse(0, null, 0, 0);
-
-    if (lastType is null) {
-        Console.Error.WriteLine("Pipeline Error. Empty pipeline.");
-        return 1;
-    }
-} catch (Exception e) {
-    Console.Error.WriteLine(e.Message);
-    return 1;
-}
-#endif
 
 /// ----------------------------------------------
 /// Generating image
@@ -342,7 +370,7 @@ string path = pathBuilder.ToString();
 BackgroundWorker backgroundWorker = new();
 
 if (lastType == typeof(byte))
-    backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, byteStack.Pop(), scale, (int)scale);
+    backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, byteStack.Pop(), scale, (int)scale, randomizeColor);
 else
     backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, tileStack.Pop(), scale, (int)scale);
 

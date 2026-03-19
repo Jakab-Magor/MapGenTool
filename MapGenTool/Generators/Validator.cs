@@ -23,6 +23,7 @@ public static partial class Misc {
         int[] dx = { -1, 1, 0, 0 };
         int[] dy = { 0, 0, -1, 1 };
 
+        Console.WriteLine("Finding islands:");
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (!(input[x, y] == Tiles.Space && islandMap[x, y] == 0)) {
@@ -36,7 +37,10 @@ public static partial class Misc {
                 if (volume < cullingTreshold) {
                     FloodFill(x, y, 0, out _);
                     islands.RemoveAt(islands.Count - 1);
+                    Console.WriteLine($"culled - volume: {volume}");
+                    continue;
                 }
+                Console.WriteLine($"#{islands.Count} - volume: {volume}");
             }
         }
 
@@ -79,6 +83,7 @@ public static partial class Misc {
             }
         }
 
+        Console.WriteLine("\nConnecting rooms and overriding:");
         while (boundsQ.Count != 0) {
             (int x, int y, int parentx, int parenty) = boundsQ.Dequeue();
             int colorCurrent = boundsMap[parentx, parenty];
@@ -101,9 +106,10 @@ public static partial class Misc {
                 if (colorCurrent != colorNext) {
                     (int ax, int ay) = islands[colorCurrent - 1];
                     (int bx, int by) = islands[colorNext - 1];
-                    Console.WriteLine($"({colorCurrent}) -> ({colorNext})");
+                    Console.WriteLine($"#{colorCurrent} -> #{colorNext}");
 
-                    HashSet<(int, int)> path = [.. findPathAStar(ax, ay, nx, ny), .. findPathAStar(bx, by, nx, ny)];
+                    //HashSet<(int, int)> path = [.. findPathAStar(ax, ay, nx, ny), .. findPathAStar(bx, by, nx, ny)];
+                    HashSet<(int, int)> path = [.. findPathAStar(ax, ay, bx, by)];
                     foreach (var pos in path) {
                         (int px, int py) = pos;
                         islandMap[px, py] = colorCurrent;
@@ -116,6 +122,7 @@ public static partial class Misc {
         List<(int, int)> findPathAStar(int startX, int startY, int goalX, int goalY) {
             List<AStarNode> open = [];
             HashSet<(int, int)> closed = [];
+            int goalColor = islandMap[goalX, goalY];
 
             AStarNode startNode = new(startX, startY) {
                 g = 0,
@@ -127,7 +134,8 @@ public static partial class Misc {
                 AStarNode current = open[0];
                 open.RemoveAt(0);
 
-                if (current.x == goalX && current.y == goalY) {
+                int currentColor = islandMap[current.x, current.y];
+                if (currentColor == goalColor) {
                     // return path
                     List<(int, int)> path = [];
                     AStarNode? pathNode = current;
@@ -167,7 +175,7 @@ public static partial class Misc {
                     AStarNode? existing = open.Find(n => n.x == nx && n.y == ny);
 
                     if (existing is not null) {
-                        if (existing.g < neighbour.g) {
+                        if (existing.g > neighbour.g) {
                             existing.g = neighbour.g;
                             existing.parent = neighbour.parent;
                         }
@@ -200,11 +208,12 @@ public static partial class Misc {
         int heuristics(int x1, int y1, int x2, int y2) {
             int difX = Math.Abs(x1 - x2);
             int difY = Math.Abs(y1 - y2);
-            int dist = difX + difY;
+            int dist = difX * difX + difY * difY;
             return dist;
         }
         int final(AStarNode node) {
-            return node.g + node.h;
+            // squering g because h is distance squared as well
+            return node.g * node.g + node.h;
         }
 
         Tiles[,] result = new Tiles[width, height];
