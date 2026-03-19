@@ -13,7 +13,7 @@ public static partial class Misc {
         /// Dr. Orosz Ákos suggestion
         /// Floodfill all "islands" of Tiles.space
         ///     Cull any below a treshold to remove stray tiles
-        int[,] boundsMap = new int[width, height];
+        int[,] islandMap = new int[width, height];
         // The current islands value in fillmap
         List<(int, int)> islands = [];
 
@@ -24,7 +24,7 @@ public static partial class Misc {
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (!(input[x, y] == Tiles.Space && boundsMap[x, y] == 0)) {
+                if (!(input[x, y] == Tiles.Space && islandMap[x, y] == 0)) {
                     continue;
                 }
 
@@ -35,21 +35,18 @@ public static partial class Misc {
                 if (volume < cullingTreshold) {
                     FloodFill(x, y, 0, out _);
                 }
-
-
             }
         }
 
-        void FloodFill(int fromX, int fromY, int with, out int volume) {
-            /// runs forever
+        void FloodFill(int originX, int originY, int value, out int volume) {
             Queue<(int, int)> floodfillQ = new();
-            floodfillQ.Enqueue((fromX, fromY));
+            floodfillQ.Enqueue((originX, originY));
             volume = 0;
+            islandMap[originX, originY] = value;
 
             while (floodfillQ.Count != 0) {
                 (int qx, int qy) = floodfillQ.Dequeue();
                 volume++;
-                boundsMap[qx, qy] = with;
                 for (int i = 0; i < dx.Length; i++) {
                     int nx = qx + dx[i];
                     int ny = qy + dy[i];
@@ -58,7 +55,8 @@ public static partial class Misc {
                         continue;
                     }
 
-                    if (input[nx, ny] == Tiles.Space) {
+                    if (input[nx, ny] == Tiles.Space && islandMap[nx, ny] != value) {
+                        islandMap[nx, ny] = value;
                         floodfillQ.Enqueue((nx, ny));
                     }
                 }
@@ -68,17 +66,20 @@ public static partial class Misc {
         /// On a seperate layer expand bounds of all "islands"
         ///     Where two bounds meet connect with corridor
         ///     Backfill with either color to handle as same room
-        Queue<(int, int)> boundsQ = new();
+        int[,] boundsMap = (int[,])islandMap.Clone();
+        Queue<(int, int, int)> boundsQ = new();
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                if (boundsMap[x, y] != 0) {
-                    boundsQ.Enqueue((x, y));
+                int color = boundsMap[x, y];
+                if (color != 0) {
+                    boundsQ.Enqueue((x, y, color));
                 }
             }
         }
 
         while (boundsQ.Count != 0) {
-            (int x, int y) = boundsQ.Dequeue();
+            (int x, int y, int colorCurrent) = boundsQ.Dequeue();
+            boundsMap[x, y] = colorCurrent;
             for (int i = 0; i < dx.Length; i++) {
                 int nx = x + dx[i];
                 int ny = y + dy[i];
@@ -87,23 +88,23 @@ public static partial class Misc {
                     continue;
                 }
 
-                int boundsCurrent = boundsMap[x, y];
-                int boundsNext = boundsMap[nx, ny];
-                if (boundsNext == 0) {
-                    boundsQ.Enqueue((nx, ny));
+                int colorNext = boundsMap[nx, ny];
+                if (colorNext == 0) {
+                    boundsMap[nx, ny] = colorCurrent;
+                    boundsQ.Enqueue((nx, ny, colorCurrent));
                     continue;
                 }
-                if (boundsCurrent != boundsNext) {
-                    (int ax, int ay) = islands[boundsCurrent];
-                    (int bx, int by) = islands[boundsNext];
+                // two bounds intersect
+                if (colorCurrent != colorNext) {
+                    (int ax, int ay) = islands[colorCurrent];
+                    (int bx, int by) = islands[colorNext];
 
-                    List<(int, int)> path = [.. FindPathAStar(ax, ay, nx, ny), .. FindPathAStar(bx, by, nx, ny)];
-                    for (int p = 0; p < path.Count; p++) {
-                        (int px, int py) = path[p];
-                        boundsMap[px, py] = boundsCurrent;
+                    HashSet<(int, int)> path = [.. FindPathAStar(ax, ay, nx, ny), .. FindPathAStar(bx, by, nx, ny)];
+                    foreach (var pos in path) {
+                        (int px, int py) = pos;
+                        islandMap[px, py] = colorCurrent;
                     }
-                    FloodFill(bx, by, boundsCurrent, out _);
-                    islands.RemoveAt(boundsNext);
+                    FloodFillChange(bx, by, colorCurrent);
                 }
             }
         }
@@ -127,7 +128,7 @@ public static partial class Misc {
                     AStarNode? pathNode = current;
 
                     while (pathNode is not null) {
-                        if (boundsMap[pathNode.x, pathNode.y] == 0) {
+                        if (islandMap[pathNode.x, pathNode.y] == 0) {
                             path.Add((pathNode.x, pathNode.y));
                         }
                         pathNode = pathNode.parent;
@@ -161,15 +162,47 @@ public static partial class Misc {
 
                     AStarNode? existing = open.Find(n => n.x == nx && n.y == ny);
 
-                    if (existing is not null && existing.g <= neighbour.g) {
+                    if (existing is not null && existing.g < neighbour.g) {
+                        neighbour = existing;
                         continue;
                     }
 
-                    open.Add(neighbour);
+                    if (existing is null) {
+                        open.Add(neighbour);
+                    }
                 }
             }
 
             return [];
+        }
+
+        void FloodFillChange(int originX, int originY, int newValue) {
+            /// runs forever
+            Queue<(int, int)> floodfillQ = new();
+            floodfillQ.Enqueue((originX, originY));
+            int originalValue = boundsMap[originX, originY];
+            boundsMap[originX, originY] = newValue;
+            if (originalValue == newValue) {
+                return;
+            }
+
+            while (floodfillQ.Count != 0) {
+                (int qx, int qy) = floodfillQ.Dequeue();
+
+                for (int i = 0; i < dx.Length; i++) {
+                    int nx = qx + dx[i];
+                    int ny = qy + dy[i];
+
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                        continue;
+                    }
+
+                    if (boundsMap[nx, ny] == originalValue) {
+                        boundsMap[nx, ny] = newValue;
+                        floodfillQ.Enqueue((nx, ny));
+                    }
+                }
+            }
         }
 
         int heuristics(int x1, int y1, int x2, int y2) {
@@ -183,7 +216,7 @@ public static partial class Misc {
         Tiles[,] result = new Tiles[width, height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                result[x, y] = boundsMap[x,y]==0?Tiles.Wall:Tiles.Space;
+                result[x, y] = islandMap[x, y] == 0 ? Tiles.Wall : Tiles.Space;
             }
         }
 
