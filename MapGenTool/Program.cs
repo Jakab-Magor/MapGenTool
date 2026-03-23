@@ -118,7 +118,7 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "multiply",           new (paramCount: 0, GeneratorTypes.Binary,   returnType: typeof(byte))},
     { "checkerboard",       new (paramCount: 2, GeneratorTypes.First,    returnType: typeof(byte))},
     { "perlin",             new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "validate",           new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(Tiles))},
+    { "validate",           new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(byte))},
 };
 
 /// ----------------------------------------------
@@ -299,7 +299,7 @@ try {
                         size: int.Parse(generatorArgs[0])));
                     break;
                 case "validate":
-                    tileStack.Push(Misc.Validate(width, height, tileStack.Pop(),
+                    byteStack.Push(Misc.Validate(width, height, tileStack.Pop(),
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
             }

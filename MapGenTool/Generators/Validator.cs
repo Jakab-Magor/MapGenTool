@@ -1,5 +1,6 @@
 ﻿
 using MapGenTool.Generic;
+using System.Drawing;
 
 namespace MapGenTool.Generators;
 
@@ -9,7 +10,7 @@ public static partial class Misc {
         public AStarNode? parent = null;
     }
 
-    public static Tiles[,] Validate(int width, int height, Tiles[,] input, int cullingTreshold) {
+    public static byte[,] Validate(int width, int height, Tiles[,] input, int cullingTreshold) {
         /// Dr. Orosz Ákos suggestion
         /// Floodfill all "islands" of Tiles.space
         ///     Cull any below a treshold to remove stray tiles
@@ -40,7 +41,8 @@ public static partial class Misc {
                     Console.WriteLine($"culled - volume: {volume}");
                     continue;
                 }
-                Console.WriteLine($"#{islands.Count} - volume: {volume}");
+                writeConsoleWithRGB($"#{islands.Count}", MapDrawer.RandomColors[islands.Count]);
+                Console.WriteLine($" - volume: {volume}");
             }
         }
 
@@ -106,7 +108,10 @@ public static partial class Misc {
                 if (colorCurrent != colorNext) {
                     (int ax, int ay) = islands[colorCurrent - 1];
                     (int bx, int by) = islands[colorNext - 1];
-                    Console.WriteLine($"#{colorCurrent} -> #{colorNext}");
+
+                    writeConsoleWithRGB($"#{colorCurrent}", MapDrawer.RandomColors[colorCurrent]);
+                    Console.Write($" -> ");
+                    writeConsoleWithRGB($"#{colorNext}\n", MapDrawer.RandomColors[colorNext]);
 
                     //HashSet<(int, int)> path = [.. findPathAStar(ax, ay, nx, ny), .. findPathAStar(bx, by, nx, ny)];
                     HashSet<(int, int)> path = [.. findPathAStar(ax, ay, bx, by)];
@@ -118,6 +123,9 @@ public static partial class Misc {
                     changeBoundsColors(colorNext, colorCurrent);
                 }
             }
+        }
+        void writeConsoleWithRGB(string line, Color color) {
+            Console.Write($"\u001b[38;2;{color.R};{color.G};{color.B}m{line}\u001b[0m");
         }
         List<(int, int)> findPathAStar(int startX, int startY, int goalX, int goalY) {
             List<AStarNode> open = [];
@@ -216,6 +224,15 @@ public static partial class Misc {
             return node.g * node.g + node.h;
         }
 
+        // debug
+        byte[,] br = new byte[width, height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                br[x, y] = (byte)islandMap[x,y];
+            }
+        }
+        return br;
+
         Tiles[,] result = new Tiles[width, height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -223,6 +240,6 @@ public static partial class Misc {
             }
         }
 
-        return result;
+        //return result;
     }
 }
