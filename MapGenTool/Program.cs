@@ -39,11 +39,6 @@ Option<bool> randomizeColorOption = new("--random-color", "-r") {
     Required = false,
     DefaultValueFactory = parseResult => false
 };*/
-/*Option<bool> benchmarkingOption = new("--benchmark", "-b") {
-    Description = "Whether the program should display benchmarking for each pass.",
-    Required = false,
-    DefaultValueFactory = parseResult => false
-};*/
 Option<Verbosity> verbosityOption = new("--verbose", "-v") {
     Description = "Verbosity of the output",
     Required = false,
@@ -61,29 +56,103 @@ Argument<string[]> pipelineArgument = new("generator-pipeline") {
     Description = "Pipeline for the generators. Syntax: <generator-name> [value]"
 };
 
-RootCommand rootCommand = new("MapGenTool");
+RootCommand rootCommand = new("MapGenTool is a mapgenerator which generates a png image to the specified path with parameters. MapGenTool uses a pipeline to determine the order of operations. The pipeline works much like an image generator. To show all generators and their parameters use the \"--help\" or \"-h\" arguments.");
 rootCommand.Options.Add(widthOption);
 rootCommand.Options.Add(heightOption);
 rootCommand.Options.Add(scaleOption);
 rootCommand.Options.Add(seedOption);
 rootCommand.Options.Add(randomizeColorOption);
 //rootCommand.Options.Add(generateLogOption);
-//rootCommand.Options.Add(benchmarkingOption);
 rootCommand.Options.Add(verbosityOption);
 rootCommand.Options.Add(displayImageOption);
 rootCommand.Arguments.Add(pathArgument);
 rootCommand.Arguments.Add(pipelineArgument);
+
+
+/// ----------------------------------------------
+/// Generator instantiation for pipeline parsing
+/// ----------------------------------------------
+Dictionary<string, GeneratorInfo> tokens = new(){
+    { "voronoi",            new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Voronoi noise", "size")},
+    { "sobel",              new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Sobel edge detection algorythm")},
+    { "perwitt",            new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Perwitt edge detection algorythm")},
+    { "bsp",                new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Binary space partitioned rooms", "room_count")},
+    { "treshold-clamper",   new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(Tiles), "Seperates grayscale into tiles along treshold", "treshold (0-1)")},
+    { "conways",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Conways game of life simulation", "iterations")},
+    { "drunkards-walk",     new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Drunkard's walk erosion simulation", "agent", "iterations", "step_size")},
+    { "simple-noise",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Basic white noise")},
+    { "basic-rooms",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates rooms discards any overlapping and tries again.", "room_count", "room_min_size", "room_max_size")},
+    { "inverter",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Inverts space and wall tiles")},
+    { "byte-inverter",      new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Inverts grayscale values")},
+    { "overlap-rooms",      new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates overlapping rooms. Any room fully inside others discarded and done again", "room_count", "room_min_size", "room_max_size")},
+    { "prefab",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Uses prefab defined pattern. Default behaviour: repeat", "prefab_path")},
+    { "multiply",           new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
+    { "checkerboard",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Grayscale checkerboard with given light and dark values", "dark_shade (0-255)", "light_shade (0-255)")},
+    { "perlin",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Perlin blue noise", "size")},
+    { "validate",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
+};
 
 /// ----------------------------------------------
 /// Parsing
 /// ----------------------------------------------
 ParseResult results = rootCommand.Parse(args);
 
+// ugly solution to help but I don't care
+if (results.Tokens.Any(t => t.Value == "--help" || t.Value == "-h")) {
+    rootCommand.Parse("-h").Invoke();
+    Console.WriteLine("Generator usage:");
+    Console.WriteLine("  Start a pipeline with 'first' type generators. Followers can only be put after.");
+    Console.WriteLine("    first:                    follower:                ");
+    Console.WriteLine("    [generator name] <params> [generator name] <params>");
+    Console.WriteLine();
+    Console.WriteLine("  Binary generators can be use by putting a pipeline on each side of it.");
+    Console.WriteLine("               binary:                             ");
+    Console.WriteLine("    [pipeline] [generator name] <params> [pipeline]");
+    Console.WriteLine();
+    Console.WriteLine("Precedence:  If the order of generators needs to be changed use '(' and ')' seperated by spaces ' ', otherwise the order is the following:");
+    Console.WriteLine("  1.      2.         4.       3.      5.        ");
+    Console.WriteLine("  [first] [follower] [binary] [first] [follower]");
+    Console.WriteLine();
+    Console.WriteLine("  1.      2.         5.         3.      4.          ");
+    Console.WriteLine("  [first] [follower] [binary] ( [first] [follower] )");
+    Console.WriteLine();
+    Console.WriteLine("Generators: ");
+    foreach (var token in tokens) {
+        Console.WriteLine($"  {token.Key,-34}{token.Value.shortDescription,-60}");
+        Console.WriteLine($"{"",-38}Usage: {token.Value.generatorType.ToString().ToLower()}");
+        switch (token.Value.inputTypes.Length) {
+            case 0:
+                break;
+            case 1:
+                Console.WriteLine($"{"",-38}Takes: {token.Value.inputTypes[0].Name.ToLower()}");
+                break;
+            case 2:
+                Console.WriteLine($"{"",-38}Takes left: {token.Value.inputTypes[0].Name.ToLower()}, right: {token.Value.inputTypes[1].Name.ToLower()}");
+                break;
+            default:
+                Console.WriteLine($"{"",-38}Takes: {String.Join(", ", token.Value.inputTypes.Select(i => i.Name.ToLower()))}");
+                break;
+        }
+        Console.WriteLine($"{"",-38}Returns: {token.Value.returnType.Name.ToLower()}");
+        Console.Write($"{"",-38}Parameters: ");
+        var prms = token.Value.parameters;
+        if (prms.Length == 0) {
+            Console.WriteLine('-');
+        } else {
+            Console.WriteLine(String.Join(",", prms));
+        }
+        Console.WriteLine();
+    }
+    return 2;
+}
+
 if (results.Errors.Any() || results.GetValue(pathArgument) is not FileInfo fileInfo) {
     foreach (var error in results.Errors)
         Console.Error.WriteLine(error.Message);
 
-    return 1;
+    rootCommand.Parse("-h").Invoke();
+
+    return 2;
 }
 
 int width = results.GetValue(widthOption);
@@ -92,34 +161,10 @@ int height = results.GetValue(heightOption);
 float scale = results.GetValue(scaleOption);
 bool randomizeColor = results.GetValue(randomizeColorOption);
 //bool generateLog = results.GetValue(generateLogOption);
-//bool displayBenchmark = results.GetValue(benchmarkingOption);
 Verbosity verbosity = results.GetValue(verbosityOption);
 bool displayImageInExplorer = results.GetValue(displayImageOption);
 
 int seed = results.GetValue(seedOption);
-
-/// ----------------------------------------------
-/// Generator instantiation for pipeline parsing
-/// ----------------------------------------------
-Dictionary<string, GeneratorInfo> tokens = new(){
-    { "voronoi",            new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "sobel",              new (paramCount: 0, GeneratorTypes.Follower, returnType: typeof(byte))},
-    { "perwitt",            new (paramCount: 0, GeneratorTypes.Follower, returnType: typeof(byte))},
-    { "bsp",                new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(Tiles))},
-    { "treshold-clamper",   new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(Tiles))},
-    { "conways",            new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(Tiles))},
-    { "drunkards-walk",     new (paramCount: 3, GeneratorTypes.Follower, returnType: typeof(Tiles))},
-    { "simple-noise",       new (paramCount: 0, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "basic-rooms",        new (paramCount: 0, GeneratorTypes.First,    returnType: typeof(Tiles))},
-    { "inverter",           new (paramCount: 0, GeneratorTypes.Follower, returnType: typeof(Tiles))},
-    { "byte-inverter",      new (paramCount: 0, GeneratorTypes.Follower, returnType: typeof(byte))},
-    { "overlap-rooms",      new (paramCount: 3, GeneratorTypes.First,    returnType: typeof(Tiles))},
-    { "prefab",             new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(Tiles))},
-    { "multiply",           new (paramCount: 0, GeneratorTypes.Binary,   returnType: typeof(byte))},
-    { "checkerboard",       new (paramCount: 2, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "perlin",             new (paramCount: 1, GeneratorTypes.First,    returnType: typeof(byte))},
-    { "validate",           new (paramCount: 1, GeneratorTypes.Follower, returnType: typeof(Tiles))},
-};
 
 /// ----------------------------------------------
 /// Pipeline parsing
@@ -171,7 +216,7 @@ try {
             throw new ArgumentException($"Pipeline parsing error. Unknown generator {name}.");
         }
 
-        int paramOffset = info.paramCount;
+        int paramOffset = info.parameters.Length;
         string[] generatorArgs = new string[paramOffset];
         int idxOffset = idx + 1;
         paramOffset += idxOffset;
@@ -222,8 +267,7 @@ try {
         (int colonX, int colonY) = Console.GetCursorPosition();
         if (!verbosity.HasFlag((Verbosity)16)) {
             Console.SetOut(TextWriter.Null);
-        }
-        else {
+        } else {
             Console.WriteLine();
             Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
         }
