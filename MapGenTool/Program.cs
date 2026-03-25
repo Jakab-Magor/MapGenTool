@@ -343,7 +343,7 @@ try {
                         size: int.Parse(generatorArgs[0])));
                     break;
                 case "validate":
-                    tileStack.Push(Misc.Validate(width, height, tileStack.Pop(),
+                    byteStack.Push(Misc.Validate(width, height, tileStack.Pop(),
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
             }
