@@ -1,15 +1,7 @@
-﻿using MapGenTool.Generators;
+﻿namespace MapGenTool.Generators;
 
-namespace MapGenTool.Generators.NoiseGenerators;
-
-public class WhiteNoise() : IGenerator<byte> {
-    public bool UsesInput => false;
-
-    public byte ArgsCount => 0;
-
-    public Type InputType => throw new NotImplementedException();
-
-    public byte[,] Generate(int width, int height, int seed) {
+public static partial class Noise {
+    public static byte[,] WhiteNoise(int width, int height, int seed) {
         byte[,] tiles = new byte[width, height];
         Random rng = new(seed);
 
@@ -20,11 +12,5 @@ public class WhiteNoise() : IGenerator<byte> {
             }
 
         return tiles;
-    }
-
-    public void Parse(params string[] args) { }
-
-    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible {
-        throw new NotImplementedException();
     }
 }

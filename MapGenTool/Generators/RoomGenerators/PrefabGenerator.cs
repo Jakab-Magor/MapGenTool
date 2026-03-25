@@ -1,22 +1,16 @@
-﻿
-namespace MapGenTool.Generators;
+﻿namespace MapGenTool.Generators;
 
-public class PrefabGenerator : IGenerator<Tiles> {
-    public byte ArgsCount => 1;
+public static partial class Rooms {
+    public static Tiles[,] Prefabs(int width, int height, int seed, string pathString) {
+        const char s_headerChar = '!';
+        const char s_headerSeperatorChar = ',';
+        const char s_commentChar = '#';
 
-    public bool UsesInput => false;
-
-    public Type InputType => throw new NotImplementedException();
-    public FileInfo PrefabFile { get; set; } = null!;
-    static readonly char s_headerChar = '!';
-    static readonly char s_headerSeperatorChar = ',';
-    static readonly char s_commentChar = '#';
-    public Tiles[][,] Prefabs { get; set; } = null!;
-
-    public Tiles[,] Generate(int width, int height, int seed) {
         Tiles[,] grid = new Tiles[width, height];
+        FileInfo prefabFile = new(pathString);
+        Tiles[][,] prefabs = null!;
 
-        StreamReader sR = new(PrefabFile.FullName);
+        StreamReader sR = new(prefabFile.FullName);
 
         string? header = sR.ReadLine();
         if (header is null)
@@ -30,7 +24,7 @@ public class PrefabGenerator : IGenerator<Tiles> {
         int numberOfPrefabs = 1;
         if (headerInfo[3] is not null)
             numberOfPrefabs = int.Parse(headerInfo[3]);
-        Prefabs = new Tiles[numberOfPrefabs][,];
+        prefabs = new Tiles[numberOfPrefabs][,];
 
         switch (dataType) {
             case "tiles":
@@ -42,8 +36,8 @@ public class PrefabGenerator : IGenerator<Tiles> {
         void ReadTilesPrefab() {
             const int tileLength = 3;
             char[] buffer = new char[tileLength];
-            for (int p = 0; p < Prefabs.Length; p++) {
-                Prefabs[p] = new Tiles[prefabWidth, prefabHeight];
+            for (int p = 0; p < prefabs.Length; p++) {
+                prefabs[p] = new Tiles[prefabWidth, prefabHeight];
                 for (int y = 0; y < prefabHeight; y++) {
                     for (int x = 0; x < prefabWidth; x++) {
                         int charL = sR.Read(buffer, 0, tileLength);
@@ -53,15 +47,15 @@ public class PrefabGenerator : IGenerator<Tiles> {
                         }
                         if (charL != tileLength)
                             throw new InvalidOperationException("Char length was not at the desired length.");
-                        Tiles value = (Tiles)(Byte.Parse(buffer));
-                        Prefabs[p][x, y] = value;
+                        Tiles value = (Tiles)byte.Parse(buffer);
+                        prefabs[p][x, y] = value;
                     }
                     _ = sR.ReadLine();
                     if (sR.EndOfStream)
                         goto end_for;
                 }
             }
-        end_for:;
+            end_for:;
         }
 
         Random rng = new(seed);
@@ -79,8 +73,8 @@ public class PrefabGenerator : IGenerator<Tiles> {
             for (int xChunk = 0; xChunk < xChunksCount; xChunk++) {
                 int xChunkWorldPos = xChunk * xChunkSpaced;
 
-                int k = rng.Next(Prefabs.Length);
-                Tiles[,] pref = Prefabs[k];
+                int k = rng.Next(prefabs.Length);
+                Tiles[,] pref = prefabs[k];
                 for (int y = 0; y < prefabHeight; y++) {
                     for (int x = 0; x < prefabWidth; x++) {
                         int gridPosX = x + xChunkWorldPos;
@@ -94,13 +88,5 @@ public class PrefabGenerator : IGenerator<Tiles> {
 
         sR.Close();
         return grid;
-    }
-    public void Parse(params string[] args) {
-        string pathString = args[0];
-        PrefabFile = new(pathString);
-    }
-
-    public void SetBaseGrid<T>(T[,] basegrid) where T : IConvertible {
-        throw new NotImplementedException();
     }
 }
