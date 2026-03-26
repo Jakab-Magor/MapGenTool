@@ -76,7 +76,7 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "voronoi",            new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Voronoi noise", "size")},
     { "sobel",              new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Sobel edge detection algorythm")},
     { "perwitt",            new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Perwitt edge detection algorythm")},
-    { "bsp",                new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Binary space partitioned rooms", "room_count")},
+    { "bsp",                new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Binary space partitioned rooms", "partition_count")},
     { "treshold-clamper",   new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(Tiles), "Seperates grayscale into tiles along treshold", "treshold (0-1)")},
     { "conways",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Conways game of life simulation", "iterations")},
     { "drunkards-walk",     new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Drunkard's walk erosion simulation", "agent", "iterations", "step_size")},
@@ -89,7 +89,7 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "multiply",           new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
     { "checkerboard",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Grayscale checkerboard with given light and dark values", "dark_shade (0-255)", "light_shade (0-255)")},
     { "perlin",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Perlin blue noise", "size")},
-    { "validate",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
+    { "validate",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
 };
 
 /// ----------------------------------------------
@@ -418,6 +418,8 @@ if (lastType == typeof(byte))
 else
     backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, tileStack.Pop(), scale, (int)scale);
 
+Stopwatch drawStopWatch = new();
+drawStopWatch.Start();
 backgroundWorker.RunWorkerAsync();
 
 Console.Write("Drawing");
@@ -440,10 +442,13 @@ for (int dots = 1; backgroundWorker.IsBusy;) {
     Thread.Sleep(dotTimeout);
     dots++;
 }
+drawStopWatch.Stop();
 Console.SetCursorPosition(0, beforeTop);
 
-if (verbosity.HasFlag(Verbosity.Finished))
-    Console.WriteLine($"Successfully created map at {path}");
+if (verbosity.HasFlag(Verbosity.Finished)) {
+    TimeSpan drawTime = drawStopWatch.Elapsed;
+    Console.WriteLine($"Successfully created map at {path} in {drawTime:ss\\.ffff}s");
+}
 
 if (!displayImageInExplorer)
     return 0;
