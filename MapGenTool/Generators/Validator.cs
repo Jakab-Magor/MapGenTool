@@ -10,7 +10,7 @@ public static partial class Misc {
         public AStarNode? parent = null;
     }
 
-    public static byte[,] Validate(int width, int height, Tiles[,] input, int cullingTreshold) {
+    public static byte[,] Connector(int width, int height, Tiles[,] input, int cullingTreshold) {
         /// Dr. Orosz Ákos suggestion
         /// Floodfill all "islands" of Tiles.space
         ///     Cull any below a treshold to remove stray tiles

@@ -1,7 +1,7 @@
 ﻿namespace MapGenTool.Generators;
 
-public static partial class Rooms {
-    public static Tiles[,] Prefabs(int width, int height, int seed, string pathString) {
+public static partial class Patterns {
+    public static Tiles[,] PrefabPattern(int width, int height, int seed, string pathString) {
         const char s_headerChar = '!';
         const char s_headerSeperatorChar = ',';
         const char s_commentChar = '#';

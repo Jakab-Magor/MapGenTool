@@ -85,11 +85,12 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "inverter",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Inverts space and wall tiles")},
     { "byte-inverter",      new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Inverts grayscale values")},
     { "overlap-rooms",      new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates overlapping rooms. Any room fully inside others discarded and done again", "room_count", "room_min_size", "room_max_size")},
-    { "prefab",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Uses prefab defined pattern. Default behaviour: repeat", "prefab_path")},
+    { "prefab-pattern",     new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Uses prefab defined pattern. Repeats pattern.", "prefab_path")},
     { "multiply",           new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
     { "checkerboard",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Grayscale checkerboard with given light and dark values", "dark_shade (0-255)", "light_shade (0-255)")},
     { "perlin",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Perlin blue noise", "size")},
-    { "validate",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
+    { "connect",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
+    { "prefab-room",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Places prefabs like rooms. If overlap discard and try again.", "prefab_path")}
 };
 
 /// ----------------------------------------------
@@ -326,8 +327,8 @@ try {
                         minSize: int.Parse(generatorArgs[1]),
                         maxSize: int.Parse(generatorArgs[2])));
                     break;
-                case "prefab":
-                    tileStack.Push(Rooms.Prefabs(width, height, seed,
+                case "prefab-pattern":
+                    tileStack.Push(Patterns.PrefabPattern(width, height, seed,
                         pathString: generatorArgs[0]));
                     break;
                 case "multiply":
@@ -342,8 +343,8 @@ try {
                     byteStack.Push(Noise.Perlin2D(width, height, seed,
                         size: int.Parse(generatorArgs[0])));
                     break;
-                case "validate":
-                    byteStack.Push(Misc.Validate(width, height, tileStack.Pop(),
+                case "connect":
+                    byteStack.Push(Misc.Connector(width, height, tileStack.Pop(),
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
             }
