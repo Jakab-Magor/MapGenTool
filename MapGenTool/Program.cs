@@ -348,16 +348,16 @@ try {
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
                 case "*":
-                    byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
+                    byteStack.Push(Misc.Multiply(width, height, pop2AndSwap(ref byteStack)));
                     break;
                 case "/":
-                    byteStack.Push(Misc.Divide(width, height, byteStack.Pop(), byteStack.Pop()));
+                    byteStack.Push(Misc.Divide(width, height, pop2AndSwap(ref byteStack)));
                     break;
                 case "+":
-                    byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
+                    byteStack.Push(Misc.Add(width, height, pop2AndSwap(ref byteStack)));
                     break;
                 case "-":
-                    byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
+                    byteStack.Push(Misc.Subtract(width, height, pop2AndSwap(ref byteStack)));
                     break;
                 case "prefab-room":
                     tileStack.Push(Rooms.PrefabRooms(width, height, seed,
@@ -367,6 +367,7 @@ try {
             }
             sWatch.Stop();
         }
+
 #if !DEBUG
         catch (IndexOutOfRangeException) {
             throw new IndexOutOfRangeException($"Invalid pipeline. Not enough arguments provided to \"{name}\".");
@@ -404,6 +405,12 @@ try {
     }
 
     return (t, idx);
+}
+
+static (T, T) pop2AndSwap<T>(ref Stack<T> stack) {
+    var a = stack.Pop();
+    var b = stack.Pop();
+    return (b, a);
 }
 
 /// ----------------------------------------------
