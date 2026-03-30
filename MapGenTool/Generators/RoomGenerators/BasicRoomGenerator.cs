@@ -10,7 +10,7 @@ public static partial class Rooms {
         List<Room> rooms = [];
 
         long terminationCount = roomsCount * roomsCount * roomsCount;
-        int tryCount = 0;
+        long tryCount = 0;
 
         while (rooms.Count < roomsCount && tryCount < terminationCount) {
             IntVector2 size = new(rng.Next(minSize, maxSize - 1), rng.Next(minSize, maxSize - 1));
@@ -35,10 +35,15 @@ public static partial class Rooms {
                 for (int x = pos.x; x < otherCorner.x; x++)
                     grid[x, y] = Tiles.Space;
 
-            //Console.WriteLine(tryCount);
+            Console.WriteLine($"attempted: {tryCount}");
             tryCount = 0;
         }
-        //Console.WriteLine($"terminated at {tryCount} tries");
+        Console.WriteLine();
+        if (tryCount >= terminationCount) {
+            Console.WriteLine($"terminated at {tryCount} tries");
+        } else {
+            Console.WriteLine($"generated all {roomsCount} rooms");
+        }
 
         return grid;
 
@@ -76,9 +81,8 @@ public static partial class Rooms {
                 int yMax = Math.Max(aCenter.y, bCenter.y);
                 for (int y = yMin; y <= yMax; y++)
                     grid[bCenter.x, y] = Tiles.Space;
-            }
-            else // connect vertically first
-            {
+            } else // connect vertically first
+              {
                 int yMin = Math.Min(aCenter.y, bCenter.y);
                 int yMax = Math.Max(aCenter.y, bCenter.y);
                 for (int y = yMin; y <= yMax; y++)

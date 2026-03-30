@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-d -v all -W 120 -H 80 -S 46 -s 32 -r ./test.png overlap-rooms 60 4 18 validate 10"
+      "commandLineArgs": "-d -v all -W 120 -H 80 -S 46 -s 32 -r ./test.png prefab-room 100 ./prefab_test_7_7.prefab connect 0"
     }
   }
 }

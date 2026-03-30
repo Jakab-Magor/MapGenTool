@@ -86,11 +86,14 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "byte-inverter",      new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Inverts grayscale values")},
     { "overlap-rooms",      new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates overlapping rooms. Any room fully inside others discarded and done again", "room_count", "room_min_size", "room_max_size")},
     { "prefab-pattern",     new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Uses prefab defined pattern. Repeats pattern.", "prefab_path")},
-    { "multiply",           new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
     { "checkerboard",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Grayscale checkerboard with given light and dark values", "dark_shade (0-255)", "light_shade (0-255)")},
     { "perlin",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Perlin blue noise", "size")},
-    { "connect",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Cull any volumes smaller than treshold. COnnect the rest to the closest volume", "culling_treshold")},
-    { "prefab-room",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Places prefabs like rooms. If overlap discard and try again.", "prefab_path")}
+    { "connect",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Cull any volumes smaller than treshold. Connect the rest to the closest volume", "culling_treshold")},
+    { "prefab-room",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Places prefabs like rooms. If overlap discard and try again.", "room_count", "prefab_path")},
+    { "*",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
+    { "/",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Divide two byte maps")},
+    { "+",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Add two byte maps")},
+    { "-",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Subtract two byte maps")},
 };
 
 /// ----------------------------------------------
@@ -331,9 +334,6 @@ try {
                     tileStack.Push(Patterns.PrefabPattern(width, height, seed,
                         pathString: generatorArgs[0]));
                     break;
-                case "multiply":
-                    byteStack.Push(Misc.Multiply(width, height, seed, byteStack.Pop(), byteStack.Pop()));
-                    break;
                 case "checkerboard":
                     byteStack.Push(Patterns.Checkerboard(width, height, seed,
                         dark: byte.Parse(generatorArgs[0]),
@@ -344,8 +344,25 @@ try {
                         size: int.Parse(generatorArgs[0])));
                     break;
                 case "connect":
-                    byteStack.Push(Misc.Connector(width, height, tileStack.Pop(),
+                    tileStack.Push(Misc.Connector(width, height, tileStack.Pop(),
                         cullingTreshold: int.Parse(generatorArgs[0])));
+                    break;
+                case "*":
+                    byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
+                    break;
+                case "/":
+                    byteStack.Push(Misc.Divide(width, height, byteStack.Pop(), byteStack.Pop()));
+                    break;
+                case "+":
+                    byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
+                    break;
+                case "-":
+                    byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
+                    break;
+                case "prefab-room":
+                    tileStack.Push(Rooms.PrefabRooms(width, height, seed,
+                        roomsCount: int.Parse(generatorArgs[0]),
+                        pathString: generatorArgs[1]));
                     break;
             }
             sWatch.Stop();

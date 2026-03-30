@@ -1,16 +1,17 @@
-﻿namespace MapGenTool.Generators;
+﻿using MapGenTool.Generic;
+using System.ComponentModel;
+using System.Net.Http.Headers;
+
+namespace MapGenTool.Generators;
 
 public static partial class Rooms {
-    public static Tiles[,] PrefabRooms(int width, int height, int seed, string pathString) {
+    public static Tiles[,] PrefabRooms(int width, int height, int seed, int roomsCount, string pathString) {
         const char s_headerChar = '!';
         const char s_headerSeperatorChar = ',';
         const char s_commentChar = '#';
 
-        Tiles[,] grid = new Tiles[width, height];
         FileInfo prefabFile = new(pathString);
-        Tiles[][,] prefabs = null!;
-
-        StreamReader sR = new(prefabFile.FullName);
+        using StreamReader sR = new(prefabFile.FullName);
 
         string? header = sR.ReadLine();
         if (header is null)
@@ -24,7 +25,7 @@ public static partial class Rooms {
         int numberOfPrefabs = 1;
         if (headerInfo[3] is not null)
             numberOfPrefabs = int.Parse(headerInfo[3]);
-        prefabs = new Tiles[numberOfPrefabs][,];
+        Tiles[][,] prefabs = new Tiles[numberOfPrefabs][,];
 
         switch (dataType) {
             case "tiles":
@@ -59,34 +60,61 @@ public static partial class Rooms {
         }
 
         Random rng = new(seed);
-        int xChunksCount = width / prefabWidth;
-        int widthSpacing = width % prefabWidth / xChunksCount;
-        int xChunkSpaced = prefabWidth + widthSpacing;
+        var grid = new Tiles[width, height];
+        int[,] usedSpace = new int[width, height];
+        int generated = 0;
+        long terminationCount = roomsCount * roomsCount * roomsCount;
+        long tryCount = 0;
 
-        int yChunksCount = height / prefabHeight;
-        int heightSpacing = height % prefabHeight / yChunksCount;
-        int yChunkSpaced = prefabHeight + heightSpacing;
+        while (generated < roomsCount && tryCount < terminationCount) {
+            int k = rng.Next(0, prefabs.Length);
+            Tiles[,] pref = prefabs[k];
 
-        for (int yChunk = 0; yChunk < yChunksCount; yChunk++) {
-            int yChunkWorldPos = yChunk * yChunkSpaced;
+            int x1 = rng.Next(0, width - prefabWidth - 1);
+            int y1 = rng.Next(0, height - prefabHeight - 1);
 
-            for (int xChunk = 0; xChunk < xChunksCount; xChunk++) {
-                int xChunkWorldPos = xChunk * xChunkSpaced;
+            int x2 = x1 + prefabWidth;
+            int y2 = y1 + prefabHeight;
 
-                int k = rng.Next(prefabs.Length);
-                Tiles[,] pref = prefabs[k];
-                for (int y = 0; y < prefabHeight; y++) {
-                    for (int x = 0; x < prefabWidth; x++) {
-                        int gridPosX = x + xChunkWorldPos;
-                        int gridPosY = y + yChunkWorldPos;
+            if (isOverlapping()) {
+                tryCount++;
+                continue;
+            }
 
-                        grid[gridPosX, gridPosY] = pref[x, y];
+            bool isOverlapping() {
+                for (int y = y1; y < y2; y++) {
+                    for (int x = x1; x < x2; x++) {
+                        if (usedSpace[x, y] != 0) {
+                            return true;
+                        }
                     }
                 }
+                return false;
             }
+
+            for (int y = y1; y < y2; y++) {
+                int j = y - y1;
+                for (int x = x1; x < x2; x++) {
+                    int i = x - x1;
+
+                    usedSpace[x, y] = k + 1;
+                    grid[x, y] = pref[i, j];
+                }
+            }
+
+            if (tryCount > 0) {
+                Console.WriteLine($"#{generated}: attempted: {tryCount}");
+            }
+            tryCount = 0;
+            generated++;
+        }
+        Console.WriteLine();
+        if (tryCount >= terminationCount) {
+            Console.WriteLine($"terminated at {tryCount} tries");
+        } else {
+            Console.WriteLine($"generated all {roomsCount} rooms");
         }
 
-        sR.Close();
         return grid;
     }
 }
