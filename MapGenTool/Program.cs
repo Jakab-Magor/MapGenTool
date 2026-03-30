@@ -113,7 +113,7 @@ if (results.Tokens.Any(t => t.Value == "--help" || t.Value == "-h")) {
     Console.WriteLine("               binary:                             ");
     Console.WriteLine("    [pipeline] [generator name] <params> [pipeline]");
     Console.WriteLine();
-    Console.WriteLine("Precedence:  If the order of generators needs to be changed use '(' and ')' seperated by spaces ' ', otherwise the order is the following:");
+    Console.WriteLine("Precedence:  If the order of generators needs to be changed use round brackets '(' and ')', otherwise the order is the following:");
     Console.WriteLine("  1.      2.         4.       3.      5.        ");
     Console.WriteLine("  [first] [follower] [binary] [first] [follower]");
     Console.WriteLine();
@@ -136,14 +136,16 @@ if (results.Tokens.Any(t => t.Value == "--help" || t.Value == "-h")) {
         }
         if (token.Value.returnType is null) {
             Console.WriteLine($"{"",-38}Returns: input type");
-        } else {
+        }
+        else {
             Console.WriteLine($"{"",-38}Returns: {token.Value.returnType.Name.ToLower()}");
         }
         Console.Write($"{"",-38}Parameters: ");
         var prms = token.Value.parameters;
         if (prms.Length == 0) {
             Console.WriteLine('-');
-        } else {
+        }
+        else {
             Console.WriteLine(String.Join(", ", prms));
         }
         Console.WriteLine();
@@ -175,7 +177,29 @@ int seed = results.GetValue(seedOption);
 /// Pipeline parsing
 /// ----------------------------------------------
 Console.WriteLine("Starting generation...");
-string[] pipeline = results.GetValue(pipelineArgument) ?? [];
+List<string> rawPipeline = [.. results.GetValue(pipelineArgument) ?? []];
+for (int i = 0; i < rawPipeline.Count; i++) {
+    var token = rawPipeline[i];
+    for (int j = 0; j < token.Length; j++) {
+        if (token[j] != '(' && token[j] != ')') {
+            continue;
+        }
+
+        List<string> splitTokens = new(3);
+        if (j > 0) {
+            splitTokens.Add(token.Substring(0, j - 1));
+        }
+        splitTokens.Add(token[j].ToString());
+        if (j < token.Length - 1) {
+            splitTokens.Add(token.Substring(j+1, token.Length-j-1));
+        }
+
+        rawPipeline.RemoveAt(i);
+        rawPipeline.InsertRange(i, splitTokens);
+        break;
+    }
+}
+string[] pipeline = [.. rawPipeline];
 Stack<byte[,]> byteStack = new();
 Stack<Tiles[,]> tileStack = new();
 
@@ -208,13 +232,12 @@ try {
         ref string name = ref pipeline[idx];
 
         if (name == "(") {
-            p = 0;
-            (t, int n) = Parse(idx + 1, lastT, p, nesting + 1);
-            idx = n;
+            (t, int n) = Parse(idx + 1, t, 0, nesting + 1);
+            idx = n - 1;
             continue;
         }
         if (name == ")") {
-            break;
+            return (t,idx+1);
         }
 
         if (!tokens.TryGetValue(name, out GeneratorInfo? info)) {
@@ -273,7 +296,8 @@ try {
         if (!verbosity.HasFlag((Verbosity)16)) {
             Console.WriteLine();
             Console.SetOut(TextWriter.Null);
-        } else {
+        }
+        else {
             Console.WriteLine();
             Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
         }
@@ -354,7 +378,8 @@ try {
                     if (lastT == typeof(byte)) {
                         byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    } else {
+                    }
+                    else {
                         tileStack.Push(Misc.Union(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
@@ -363,7 +388,8 @@ try {
                     if (lastT == typeof(byte)) {
                         byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    } else {
+                    }
+                    else {
                         tileStack.Push(Misc.Intersect(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
@@ -372,7 +398,8 @@ try {
                     if (lastT == typeof(byte)) {
                         byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    } else {
+                    }
+                    else {
                         tileStack.Push(Misc.Except(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
