@@ -273,7 +273,7 @@ try {
             Console.SetOut(TextWriter.Null);
         } else {
             Console.WriteLine();
-            Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
+            Console.SetOut(new GeneratorConsoleWriter(stdOut, "\t\t"));
         }
 
         Stopwatch sWatch = new();

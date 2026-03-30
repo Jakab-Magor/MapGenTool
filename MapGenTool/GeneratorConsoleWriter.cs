@@ -1,11 +1,11 @@
 ﻿using System.Text;
 
-public class GeneratorLoggerWriter : TextWriter {
+public class GeneratorConsoleWriter : TextWriter {
     private readonly TextWriter _inner;
     public override Encoding Encoding => _inner.Encoding;
     public string Prefix;
 
-    public GeneratorLoggerWriter(TextWriter inner, string prefix) {
+    public GeneratorConsoleWriter(TextWriter inner, string prefix) {
         _inner = inner;
         Prefix = prefix;
     }
