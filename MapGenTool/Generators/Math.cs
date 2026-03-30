@@ -44,4 +44,31 @@ public static partial class Misc {
         }
         return r;
     }
+    public static Tiles[,] Union(int width, int height, Tiles[,] a, Tiles[,] b) {
+        Tiles[,] r = new Tiles[width, height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                r[x, y] = a[x, y] | b[x, y];
+            }
+        }
+        return r;
+    }
+    public static Tiles[,] Intersect(int width, int height, Tiles[,] a, Tiles[,] b) {
+        Tiles[,] r = new Tiles[width, height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                r[x, y] = b[x, y] & a[x, y];
+            }
+        }
+        return r;
+    }
+    public static Tiles[,] Except(int width, int height, Tiles[,] a, Tiles[,] b) {
+        Tiles[,] r = new Tiles[width, height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                r[x, y] = b[x, y] & ~(b[x, y] & a[x, y]);
+            }
+        }
+        return r;
+    }
 }

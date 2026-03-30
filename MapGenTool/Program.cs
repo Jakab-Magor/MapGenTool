@@ -90,10 +90,10 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "perlin",             new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Perlin blue noise", "size")},
     { "connect",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Cull any volumes smaller than treshold. Connect the rest to the closest volume", "culling_treshold")},
     { "prefab-room",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Places prefabs like rooms. If overlap discard and try again.", "room_count", "prefab_path")},
-    { "*",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Multiply two byte maps")},
-    { "/",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Divide two byte maps")},
-    { "+",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Add two byte maps")},
-    { "-",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(byte)], returnType: typeof(byte), "Subtract two byte maps")},
+    { "*",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Multiply two byte maps OR get intersection of two tile maps")},
+    { "+",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Add two byte maps OR get union of two tile maps")},
+    { "-",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Subtract two byte maps OR give left except right tile maps")},
+    { "/",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte)], returnType: typeof(byte), "Divide two byte maps")},
 };
 
 /// ----------------------------------------------
@@ -130,20 +130,21 @@ if (results.Tokens.Any(t => t.Value == "--help" || t.Value == "-h")) {
             case 1:
                 Console.WriteLine($"{"",-38}Takes: {token.Value.inputTypes[0].Name.ToLower()}");
                 break;
-            case 2:
-                Console.WriteLine($"{"",-38}Takes left: {token.Value.inputTypes[0].Name.ToLower()}, right: {token.Value.inputTypes[1].Name.ToLower()}");
-                break;
             default:
                 Console.WriteLine($"{"",-38}Takes: {String.Join(", ", token.Value.inputTypes.Select(i => i.Name.ToLower()))}");
                 break;
         }
-        Console.WriteLine($"{"",-38}Returns: {token.Value.returnType.Name.ToLower()}");
+        if (token.Value.returnType is null) {
+            Console.WriteLine($"{"",-38}Returns: input type");
+        } else {
+            Console.WriteLine($"{"",-38}Returns: {token.Value.returnType.Name.ToLower()}");
+        }
         Console.Write($"{"",-38}Parameters: ");
         var prms = token.Value.parameters;
         if (prms.Length == 0) {
             Console.WriteLine('-');
         } else {
-            Console.WriteLine(String.Join(",", prms));
+            Console.WriteLine(String.Join(", ", prms));
         }
         Console.WriteLine();
     }
@@ -270,6 +271,7 @@ try {
         TextWriter stdOut = Console.Out;
         (int colonX, int colonY) = Console.GetCursorPosition();
         if (!verbosity.HasFlag((Verbosity)16)) {
+            Console.WriteLine();
             Console.SetOut(TextWriter.Null);
         } else {
             Console.WriteLine();
@@ -277,6 +279,7 @@ try {
         }
 
         Stopwatch sWatch = new();
+        t = info.returnType;
         try {
             sWatch.Start();
             /// Include argument name for clarity
@@ -347,17 +350,35 @@ try {
                     tileStack.Push(Misc.Connector(width, height, tileStack.Pop(),
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
+                case "+":
+                    if (lastT == typeof(byte)) {
+                        byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
+                        t = typeof(byte);
+                    } else {
+                        tileStack.Push(Misc.Union(width, height, tileStack.Pop(), tileStack.Pop()));
+                        t = typeof(Tiles);
+                    }
+                    break;
                 case "*":
-                    byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
+                    if (lastT == typeof(byte)) {
+                        byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
+                        t = typeof(byte);
+                    } else {
+                        tileStack.Push(Misc.Intersect(width, height, tileStack.Pop(), tileStack.Pop()));
+                        t = typeof(Tiles);
+                    }
+                    break;
+                case "-":
+                    if (lastT == typeof(byte)) {
+                        byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
+                        t = typeof(byte);
+                    } else {
+                        tileStack.Push(Misc.Except(width, height, tileStack.Pop(), tileStack.Pop()));
+                        t = typeof(Tiles);
+                    }
                     break;
                 case "/":
                     byteStack.Push(Misc.Divide(width, height, byteStack.Pop(), byteStack.Pop()));
-                    break;
-                case "+":
-                    byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
-                    break;
-                case "-":
-                    byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
                     break;
                 case "prefab-room":
                     tileStack.Push(Rooms.PrefabRooms(width, height, seed,
@@ -395,7 +416,6 @@ try {
             Console.WriteLine(lineBuilder.ToString());
             Console.SetCursorPosition(beforeX, beforeY);
         }
-        t = info.returnType;
         idx++;
 
         if (p < lastP) {

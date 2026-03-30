@@ -4,5 +4,5 @@ public enum GeneratorTypes : byte {
     Follower,
     Binary
 }
-public record class GeneratorInfo(GeneratorTypes generatorType, Type[] inputTypes, Type returnType, string shortDescription, params string[] parameters) {
+public record class GeneratorInfo(GeneratorTypes generatorType, Type[] inputTypes, Type? returnType, string shortDescription, params string[] parameters) {
 }
