@@ -15,7 +15,7 @@ public static partial class Misc {
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 ref Tiles tile = ref baseGrid[x, y];
-                tile = ~tile;
+                tile = tile == Tiles.Wall ? Tiles.Space : Tiles.Wall;
             }
         }
 
