@@ -82,8 +82,8 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "drunkards-walk",     new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Drunkard's walk erosion simulation", "agent", "iterations", "step_size")},
     { "simple-noise",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Basic white noise")},
     { "basic-rooms",        new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates rooms discards any overlapping and tries again.", "room_count", "room_min_size", "room_max_size")},
-    { "inverter",           new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Inverts space and wall tiles")},
-    { "byte-inverter",      new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Inverts grayscale values")},
+    { "invert",             new (GeneratorTypes.Follower, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Inverts space and wall tiles OR Inverts grayscale values")},
+    //{ "byte-inverter",      new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Inverts grayscale values")},
     { "overlap-rooms",      new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Generates overlapping rooms. Any room fully inside others discarded and done again", "room_count", "room_min_size", "room_max_size")},
     { "prefab-pattern",     new (GeneratorTypes.First, inputTypes: [], returnType: typeof(Tiles), "Uses prefab defined pattern. Repeats pattern.", "prefab_path")},
     { "checkerboard",       new (GeneratorTypes.First, inputTypes: [], returnType: typeof(byte), "Grayscale checkerboard with given light and dark values", "dark_shade (0-255)", "light_shade (0-255)")},
@@ -97,7 +97,9 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "expand",             new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Blobifying diffusion slow and angular.", "iterations") },
     { "blobify",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Blobifying diffusion fast and circular.", "blob_radius") },
     { "reverse-clamper",    new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Converts tiles to bytes with low and high values for wall and space", "low (0-255)", "high (0-255)") },
-    { "bel-zab",            new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "The Belousov Zhabotinsky Reaction as a celurar automata as proposed by A.K.Dewdney [WARNING MIGHT CRASH WITH BAD ARGS]", "iterations" , "k1 (0-255)", "k2 (0-255)", "ill-state  (0-255)", "g  (0-255)") },
+    { "bel-zab",            new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "The Belousov Zhabotinsky Reaction as a celurar automata as proposed by A.K.Dewdney", "iterations" , "k1 (0-255)", "k2 (0-255)", "ill-state (0-255)", "g (0-255)") },
+    { "contrast",           new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Boosts or reduces brightness and contrast", "brightness", "contrast") },
+    { "^",                  new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "Raises values to power", "exponent") },
 };
 
 /// ----------------------------------------------
@@ -347,12 +349,16 @@ try {
                         minSize: int.Parse(generatorArgs[1]),
                         maxSize: int.Parse(generatorArgs[2])));
                     break;
-                case "inverter":
-                    tileStack.Push(Misc.Inverter(width, height, seed, tileStack.Pop()));
+                case "invert":
+                    if (t == typeof(byte)) {
+                        byteStack.Push(Misc.ByteInverter(width, height, seed, byteStack.Pop()));
+                    } else {
+                        tileStack.Push(Misc.Inverter(width, height, seed, tileStack.Pop()));
+                    }
                     break;
-                case "byte-inverter":
-                    byteStack.Push(Misc.ByteInverter(width, height, seed, byteStack.Pop()));
-                    break;
+                //case "byte-inverter":
+                //    byteStack.Push(Misc.ByteInverter(width, height, seed, byteStack.Pop()));
+                //    break;
                 case "overlap-rooms":
                     tileStack.Push(Rooms.OverlapRooms(width, height, seed,
                         roomCount: int.Parse(generatorArgs[0]),
@@ -426,7 +432,20 @@ try {
                     break;
                 case "bel-zab":
                     byteStack.Push(CellurarAutomata.BelousovZhabotinskyReaction(width, height, byteStack.Pop(),
-                        ));
+                        iterations: int.Parse(generatorArgs[0]),
+                        k1: byte.Parse(generatorArgs[1]),
+                        k2: byte.Parse(generatorArgs[2]),
+                        n: byte.Parse(generatorArgs[3]),
+                        g: byte.Parse(generatorArgs[4])));
+                    break;
+                case "contrast":
+                    byteStack.Push(Misc.ContrastBoost(width, height, byteStack.Pop(),
+                        brightness: float.Parse(generatorArgs[0], CultureInfo.InvariantCulture),
+                        contrast: float.Parse(generatorArgs[1], CultureInfo.InvariantCulture)));
+                    break;
+                case "^":
+                    byteStack.Push(Misc.Power(width, height, byteStack.Pop(),
+                        exponent: float.Parse(generatorArgs[0], CultureInfo.InvariantCulture)));
                     break;
             }
             sWatch.Stop();
@@ -529,6 +548,8 @@ Console.SetCursorPosition(0, beforeTop);
 if (verbosity.HasFlag(Verbosity.Finished)) {
     TimeSpan drawTime = drawStopWatch.Elapsed;
     Console.WriteLine($"Successfully created map at {path} in {drawTime:ss\\.ffff}s");
+} else {
+    Console.WriteLine(empty.ToString());
 }
 
 if (!displayImageInExplorer)

@@ -44,6 +44,17 @@ public static partial class Misc {
         }
         return r;
     }
+    public static byte[,] Power(int width, int height, byte[,] input, float exponent) {
+        byte[,] r = new byte[width, height];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                float v = MathF.Pow(input[x, y], exponent);
+                v = Math.Clamp(v, byte.MinValue, byte.MaxValue);
+                r[x, y] = (byte)v;
+            }
+        }
+        return r;
+    }
     public static Tiles[,] Union(int width, int height, Tiles[,] a, Tiles[,] b) {
         Tiles[,] r = new Tiles[width, height];
         for (int y = 0; y < height; y++) {

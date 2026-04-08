@@ -22,7 +22,7 @@ public static partial class CellurarAutomata {
             byte value = grid[x, y];
 
             // ill
-            if (value==n) {
+            if (value == n) {
                 return 0;
             }
 
@@ -56,12 +56,16 @@ public static partial class CellurarAutomata {
             // healthy
             if (value == 0) {
                 int infectedVal = infectedNeighbours / k1;
-                int illVal= illNeighbours / k2;
+                int illVal = illNeighbours / k2;
                 return (byte)(infectedVal + illVal);
             }
 
             // infected
-            return (byte)(sum / (infectedNeighbours + illNeighbours + 1) + g);
+            int r = sum / (infectedNeighbours + illNeighbours + 1) + g;
+            if (r > byte.MaxValue) {
+                return byte.MaxValue;
+            }
+            return (byte)r;
         }
     }
 }
