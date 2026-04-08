@@ -94,6 +94,10 @@ Dictionary<string, GeneratorInfo> tokens = new(){
     { "+",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Add two byte maps OR get union of two tile maps")},
     { "-",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte), typeof(Tiles)], returnType: null, "Subtract two byte maps OR give left except right tile maps")},
     { "/",                  new (GeneratorTypes.Binary, inputTypes: [typeof(byte)], returnType: typeof(byte), "Divide two byte maps")},
+    { "expand",             new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Blobifying diffusion slow and angular.", "iterations") },
+    { "blobify",            new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(Tiles), "Blobifying diffusion fast and circular.", "blob_radius") },
+    { "reverse-clamper",    new (GeneratorTypes.Follower, inputTypes: [typeof(Tiles)], returnType: typeof(byte), "Converts tiles to bytes with low and high values for wall and space", "low (0-255)", "high (0-255)") },
+    { "bel-zab",            new (GeneratorTypes.Follower, inputTypes: [typeof(byte)], returnType: typeof(byte), "The Belousov Zhabotinsky Reaction as a celurar automata as proposed by A.K.Dewdney [WARNING MIGHT CRASH WITH BAD ARGS]", "iterations" , "k1 (0-255)", "k2 (0-255)", "ill-state  (0-255)", "g  (0-255)") },
 };
 
 /// ----------------------------------------------
@@ -136,16 +140,14 @@ if (results.Tokens.Any(t => t.Value == "--help" || t.Value == "-h")) {
         }
         if (token.Value.returnType is null) {
             Console.WriteLine($"{"",-38}Returns: input type");
-        }
-        else {
+        } else {
             Console.WriteLine($"{"",-38}Returns: {token.Value.returnType.Name.ToLower()}");
         }
         Console.Write($"{"",-38}Parameters: ");
         var prms = token.Value.parameters;
         if (prms.Length == 0) {
             Console.WriteLine('-');
-        }
-        else {
+        } else {
             Console.WriteLine(String.Join(", ", prms));
         }
         Console.WriteLine();
@@ -187,11 +189,11 @@ for (int i = 0; i < rawPipeline.Count; i++) {
 
         List<string> splitTokens = new(3);
         if (j > 0) {
-            splitTokens.Add(token.Substring(0, j - 1));
+            splitTokens.Add(token.Substring(0, j ));
         }
         splitTokens.Add(token[j].ToString());
         if (j < token.Length - 1) {
-            splitTokens.Add(token.Substring(j+1, token.Length-j-1));
+            splitTokens.Add(token.Substring(j + 1, token.Length - j - 1));
         }
 
         rawPipeline.RemoveAt(i);
@@ -225,7 +227,7 @@ try {
 }
 #endif
 
-(Type? returnType, int nextIdx) Parse(int idx, Type? lastT, int lastP, int nesting) {
+(Type? returnType, int nextIdx) Parse(int idx, Type? inT, int inP, int nesting) {
     Type? t = null;
     int p = 0;
     while (idx < pipeline.Length) {
@@ -237,7 +239,7 @@ try {
             continue;
         }
         if (name == ")") {
-            return (t,idx+1);
+            return (t, idx + 1);
         }
 
         if (!tokens.TryGetValue(name, out GeneratorInfo? info)) {
@@ -296,14 +298,14 @@ try {
         if (!verbosity.HasFlag((Verbosity)16)) {
             Console.WriteLine();
             Console.SetOut(TextWriter.Null);
-        }
-        else {
+        } else {
             Console.WriteLine();
             Console.SetOut(new GeneratorLoggerWriter(stdOut, "\t\t"));
         }
 
         Stopwatch sWatch = new();
-        t = info.returnType;
+        t = info.returnType ?? t;
+
         try {
             sWatch.Start();
             /// Include argument name for clarity
@@ -327,7 +329,7 @@ try {
                         threshold: float.Parse(generatorArgs[0], CultureInfo.InvariantCulture)));
                     break;
                 case "conways":
-                    tileStack.Push(CellurarAutomata.ConwaysGameOfLife(width, height, seed, tileStack.Pop(),
+                    tileStack.Push(CellurarAutomata.ConwaysGameOfLife(width, height, tileStack.Pop(),
                         iterations: int.Parse(generatorArgs[0])));
                     break;
                 case "drunkards-walk":
@@ -375,31 +377,28 @@ try {
                         cullingTreshold: int.Parse(generatorArgs[0])));
                     break;
                 case "+":
-                    if (lastT == typeof(byte)) {
+                    if (t == typeof(byte)) {
                         byteStack.Push(Misc.Add(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    }
-                    else {
+                    } else {
                         tileStack.Push(Misc.Union(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
                     break;
                 case "*":
-                    if (lastT == typeof(byte)) {
+                    if (t == typeof(byte)) {
                         byteStack.Push(Misc.Multiply(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    }
-                    else {
+                    } else {
                         tileStack.Push(Misc.Intersect(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
                     break;
                 case "-":
-                    if (lastT == typeof(byte)) {
+                    if (t == typeof(byte)) {
                         byteStack.Push(Misc.Subtract(width, height, byteStack.Pop(), byteStack.Pop()));
                         t = typeof(byte);
-                    }
-                    else {
+                    } else {
                         tileStack.Push(Misc.Except(width, height, tileStack.Pop(), tileStack.Pop()));
                         t = typeof(Tiles);
                     }
@@ -411,6 +410,23 @@ try {
                     tileStack.Push(Rooms.PrefabRooms(width, height, seed,
                         roomsCount: int.Parse(generatorArgs[0]),
                         pathString: generatorArgs[1]));
+                    break;
+                case "expand":
+                    tileStack.Push(Erosion.Expand(width, height, tileStack.Pop(),
+                        iterations: int.Parse(generatorArgs[0])));
+                    break;
+                case "blobify":
+                    tileStack.Push(Erosion.Blobify(width, height, tileStack.Pop(),
+                        radius: int.Parse(generatorArgs[0])));
+                    break;
+                case "reverse-clamper":
+                    byteStack.Push(Misc.TilesToGrayscale(width, height, tileStack.Pop(),
+                        low: byte.Parse(generatorArgs[0]),
+                        high: byte.Parse(generatorArgs[1])));
+                    break;
+                case "bel-zab":
+                    byteStack.Push(CellurarAutomata.BelousovZhabotinskyReaction(width, height, byteStack.Pop(),
+                        ));
                     break;
             }
             sWatch.Stop();
@@ -445,7 +461,7 @@ try {
         }
         idx++;
 
-        if (p < lastP) {
+        if (p < inP) {
             break;
         }
     }

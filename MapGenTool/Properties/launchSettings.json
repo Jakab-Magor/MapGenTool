@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-W 120 -H 100 -d -S 40 ./erode.png bsp 6 conways 1 drunkards-walk 5000 3 1"
+      "commandLineArgs": "-W 120 -H 100 -s 100 -S 40 -d ./ca_test.png bsp 11 conways 3"
     }
   }
 }
