@@ -49,6 +49,11 @@ Option<bool> displayImageOption = new("--display", "-d") {
     Required = false,
     DefaultValueFactory = parseResult => false
 };
+Option<DrawStepsFlags> drawStepsOption = new("--draw-steps") {
+    Description = "Draws at each step of the pipeline in the order of operations.",
+    Required = false,
+    DefaultValueFactory = parseResult => (DrawStepsFlags)0
+};
 Argument<FileInfo> pathArgument = new("path") {
     Description = "Output path for the image"
 };
@@ -65,6 +70,7 @@ rootCommand.Options.Add(randomizeColorOption);
 //rootCommand.Options.Add(generateLogOption);
 rootCommand.Options.Add(verbosityOption);
 rootCommand.Options.Add(displayImageOption);
+rootCommand.Options.Add(drawStepsOption);
 rootCommand.Arguments.Add(pathArgument);
 rootCommand.Arguments.Add(pipelineArgument);
 
@@ -174,8 +180,32 @@ bool randomizeColor = results.GetValue(randomizeColorOption);
 //bool generateLog = results.GetValue(generateLogOption);
 Verbosity verbosity = results.GetValue(verbosityOption);
 bool displayImageInExplorer = results.GetValue(displayImageOption);
+DrawStepsFlags drawEachStep = results.GetValue(drawStepsOption);
 
 int seed = results.GetValue(seedOption);
+
+/// ----------------------------------------------
+/// Image path
+/// ----------------------------------------------
+
+string[] fileNameSegments = fileInfo.Name.Split('.');
+StringBuilder pathBuilder = new();
+int counter = 1;
+do {
+    pathBuilder.Clear();
+    pathBuilder.Append(fileNameSegments[0]);
+    pathBuilder.Append('_');
+    pathBuilder.Append(counter);
+    for (int i = 1; i <= fileNameSegments.Length - 1; i++) {
+        pathBuilder.Append('.');
+        pathBuilder.Append(fileNameSegments[i]);
+    }
+    pathBuilder.Insert(0, '\\');
+    pathBuilder.Insert(0, fileInfo.DirectoryName);
+    counter++;
+} while (File.Exists(pathBuilder.ToString()));
+
+string path = pathBuilder.ToString();
 
 /// ----------------------------------------------
 /// Pipeline parsing
@@ -191,7 +221,7 @@ for (int i = 0; i < rawPipeline.Count; i++) {
 
         List<string> splitTokens = new(3);
         if (j > 0) {
-            splitTokens.Add(token.Substring(0, j ));
+            splitTokens.Add(token.Substring(0, j));
         }
         splitTokens.Add(token[j].ToString());
         if (j < token.Length - 1) {
@@ -207,7 +237,8 @@ string[] pipeline = [.. rawPipeline];
 Stack<byte[,]> byteStack = new();
 Stack<Tiles[,]> tileStack = new();
 
-Type? lastType;
+int generatingStepCounter = 0;
+Type? lastType = null;
 #if DEBUG
 (lastType, _) = Parse(0, null, 0, 0);
 
@@ -480,6 +511,15 @@ try {
         }
         idx++;
 
+        if (drawEachStep.HasFlag(DrawStepsFlags.yes)) {
+            string ext = Path.GetExtension(path);
+            string stepPath = Path.ChangeExtension(path, null);
+            stepPath += $"_{generatingStepCounter}";
+            stepPath = Path.ChangeExtension(stepPath, ext);
+            drawImage(stepPath, t!, drawEachStep.HasFlag(DrawStepsFlags.rand));
+        }
+        generatingStepCounter++;
+
         if (p < inP) {
             break;
         }
@@ -491,65 +531,49 @@ try {
 /// ----------------------------------------------
 /// Generating image
 /// ----------------------------------------------
+drawImage(path, lastType, randomizeColor);
 
-string[] fileNameSegments = fileInfo.Name.Split('.');
-StringBuilder pathBuilder = new();
-int counter = 1;
-do {
-    pathBuilder.Clear();
-    pathBuilder.Append(fileNameSegments[0]);
-    pathBuilder.Append('_');
-    pathBuilder.Append(counter);
-    for (int i = 1; i <= fileNameSegments.Length - 1; i++) {
-        pathBuilder.Append('.');
-        pathBuilder.Append(fileNameSegments[i]);
+void drawImage(string path, Type t, bool randomize) {
+    BackgroundWorker backgroundWorker = new();
+
+    if (t == typeof(byte))
+        backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, byteStack.Peek(), scale, (int)scale, randomize);
+    else
+        backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, tileStack.Peek(), scale, (int)scale);
+
+    Stopwatch drawStopWatch = new();
+    drawStopWatch.Start();
+    backgroundWorker.RunWorkerAsync();
+
+    Console.Write("Drawing");
+    (int beforeLeft, int beforeTop) = Console.GetCursorPosition();
+    const int dotTimeout = 500;
+    const int maxDotsExclusive = 8;
+    StringBuilder empty = new();
+    for (int empt = 0; empt < maxDotsExclusive; empt++) {
+        empty.Append(' ');
     }
-    pathBuilder.Insert(0, '\\');
-    pathBuilder.Insert(0, fileInfo.DirectoryName);
-    counter++;
-} while (File.Exists(pathBuilder.ToString()));
-
-string path = pathBuilder.ToString();
-
-BackgroundWorker backgroundWorker = new();
-
-if (lastType == typeof(byte))
-    backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, byteStack.Pop(), scale, (int)scale, randomizeColor);
-else
-    backgroundWorker.DoWork += (_, _) => MapDrawer.DrawBitMap(path, tileStack.Pop(), scale, (int)scale);
-
-Stopwatch drawStopWatch = new();
-drawStopWatch.Start();
-backgroundWorker.RunWorkerAsync();
-
-Console.Write("Drawing");
-(int beforeLeft, int beforeTop) = Console.GetCursorPosition();
-const int dotTimeout = 500;
-const int maxDotsExclusive = 8;
-StringBuilder empty = new();
-for (int empt = 0; empt < maxDotsExclusive; empt++) {
-    empty.Append(' ');
-}
-for (int dots = 1; backgroundWorker.IsBusy;) {
-    if (dots == maxDotsExclusive) {
-        Console.SetCursorPosition(beforeLeft, beforeTop);
-        Console.WriteLine(empty.ToString());
-        Console.SetCursorPosition(beforeLeft, beforeTop);
-        dots = 1;
-        continue;
+    for (int dots = 1; backgroundWorker.IsBusy;) {
+        if (dots == maxDotsExclusive) {
+            Console.SetCursorPosition(beforeLeft, beforeTop);
+            Console.WriteLine(empty.ToString());
+            Console.SetCursorPosition(beforeLeft, beforeTop);
+            dots = 1;
+            continue;
+        }
+        Console.Write(".");
+        Thread.Sleep(dotTimeout);
+        dots++;
     }
-    Console.Write(".");
-    Thread.Sleep(dotTimeout);
-    dots++;
-}
-drawStopWatch.Stop();
-Console.SetCursorPosition(0, beforeTop);
+    drawStopWatch.Stop();
+    Console.SetCursorPosition(0, beforeTop);
 
-if (verbosity.HasFlag(Verbosity.Finished)) {
-    TimeSpan drawTime = drawStopWatch.Elapsed;
-    Console.WriteLine($"Successfully created map at {path} in {drawTime:ss\\.ffff}s");
-} else {
-    Console.WriteLine(empty.ToString());
+    if (verbosity.HasFlag(Verbosity.Finished)) {
+        TimeSpan drawTime = drawStopWatch.Elapsed;
+        Console.WriteLine($"Successfully created map at {path} in {drawTime:ss\\.ffff}s");
+    } else {
+        Console.WriteLine("       " + empty.ToString());
+    }
 }
 
 if (!displayImageInExplorer)

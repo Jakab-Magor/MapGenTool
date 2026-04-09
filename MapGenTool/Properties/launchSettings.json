@@ -2,7 +2,7 @@
   "profiles": {
     "MapGenTool": {
       "commandName": "Project",
-      "commandLineArgs": "-W 120 -H 100 -s 100 -S 40 -d -r ./ca_test.png bsp 11 reverse-clamper 0 3 bel-zab 16 2 3 200 7"
+      "commandLineArgs": "-W 120 -H 100 -s 100 -S 40 --draw-steps rand ./ca_test.png bsp 11 reverse-clamper 0 3 bel-zab 16 2 3 200 7"
     }
   }
 }
